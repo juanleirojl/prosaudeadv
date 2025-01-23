@@ -49,10 +49,6 @@ spring:
     mode: HTML
     cache: false  # Desativa o cache do Thymeleaf para reduzir o consumo de memória
 
-  # Reduz o tempo de resposta de HTTP e outros parâmetros para economia de recursos
-  mvc:
-    static-path-pattern: /static/**
-
   # Desativa o monitoramento de sessões (menos uso de memória)
   session:
     timeout: 15m   # Tempo de expiração da sessão, reduzindo a carga de sessões persistentes

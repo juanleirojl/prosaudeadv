@@ -55,16 +55,16 @@
                             <th onclick="sortTable(5)">Diferença (R$)</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr th:each="simulacao : ${simulacoes}">
-                            <td th:text="${simulacao.cliente.nome}"></td>
-                            <td th:text="${#temporals.format(simulacao.dataSimulacao, 'dd/MM/yyyy')}"></td>
-                            <td th:text="${#numbers.formatCurrency(simulacao.totalPago)}"></td>
-                            <td th:text="${#numbers.formatCurrency(simulacao.totalDevido)}"></td>
-                            <td th:text="${simulacao.percentualDiferenca + ' %'}"></td>
-                            <td th:text="${#numbers.formatCurrency(simulacao.totalPago.subtract(simulacao.totalDevido))}"></td>
-                        </tr>
-                    </tbody>
+					<tbody id="simulacaoBody">
+						<tr th:each="simulacao : ${simulacoes}" th:attr="data-id=${simulacao.id}" onclick="fetchDetails(this)">
+						    <td th:text="${simulacao.cliente.nome}"></td>
+						    <td th:text="${#temporals.format(simulacao.dataSimulacao, 'dd/MM/yyyy')}"></td>
+						    <td th:text="${#numbers.formatCurrency(simulacao.totalPago)}"></td>
+						    <td th:text="${#numbers.formatCurrency(simulacao.totalDevido)}"></td>
+						    <td th:text="${simulacao.percentualDiferenca + ' %'}"></td>
+						    <td th:text="${#numbers.formatCurrency(simulacao.totalPago.subtract(simulacao.totalDevido))}"></td>
+						</tr>
+					</tbody>
                 </table>
             </div>
 
@@ -92,6 +92,74 @@
 <footer th:replace="~{layout :: footer}"></footer>
 
 <script>
+	
+	document.addEventListener("DOMContentLoaded", function () {
+	    function fetchDetails(row) {
+	        const simulacaoId = row.getAttribute("data-id");
+	        const existingDetails = row.nextElementSibling;
+
+	        // Verifica se os detalhes já estão visíveis
+	        if (existingDetails && existingDetails.classList.contains("details-row")) {
+	            existingDetails.remove();
+	            return;
+	        }
+
+	        // Faz a requisição para buscar os detalhes
+	        fetch(`/simulacao/detalhes/${simulacaoId}`)
+	            .then(response => {
+	                if (!response.ok) {
+	                    throw new Error(`Erro ao buscar detalhes: ${response.statusText}`);
+	                }
+	                return response.json();
+	            })
+	            .then(simulacao => {
+	                // Cria a linha de detalhes
+	                const detailsRow = document.createElement("tr");
+	                detailsRow.classList.add("details-row");
+	                detailsRow.innerHTML = `
+	                    <td colspan="6">
+	                        <table class="table table-sm table-bordered">
+	                            <thead>
+	                                <tr>
+	                                    <th>Data</th>
+	                                    <th>Valor</th>
+	                                    <th>Tipo Aumento</th>
+	                                    <th>Aumento Plano</th>
+	                                    <th>Aumento Devido</th>
+	                                    <th>Percentual Diferença</th>
+	                                </tr>
+	                            </thead>
+	                            <tbody>
+	                                ${simulacao.simulacoesPlano.map(plano => `
+	                                    <tr>
+	                                        <td>${new Date(plano.data).toLocaleDateString("pt-BR")}</td>
+	                                        <td>${plano.valor.toFixed(2)}</td>
+	                                        <td>${plano.tipoAumento}</td>
+	                                        <td>${plano.aumentoPlano.toFixed(2)}</td>
+	                                        <td>${plano.aumentoDevido.toFixed(2)}</td>
+	                                        <td>${plano.percentualDiferenca.toFixed(2)}%</td>
+	                                    </tr>
+	                                `).join('')}
+	                            </tbody>
+	                        </table>
+	                    </td>
+	                `;
+	                row.parentNode.insertBefore(detailsRow, row.nextElementSibling);
+	            })
+	            .catch(error => {
+	                console.error("Erro ao buscar detalhes:", error);
+	            });
+	    }
+
+	    // Adiciona o evento de clique às linhas
+	    document.querySelectorAll("#simulacaoBody > tr").forEach(row => {
+	        row.addEventListener("click", function () {
+	            fetchDetails(row);
+	        });
+	    });
+	});
+
+	
     let currentPage = 1;
     let rowsPerPage = 5;
     const table = document.getElementById("simulacaoTable");

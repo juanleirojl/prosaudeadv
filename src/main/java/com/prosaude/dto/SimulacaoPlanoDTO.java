@@ -34,6 +34,5 @@ public class SimulacaoPlanoDTO implements Serializable {
 
   private IndiceANSDTO indiceANS;
   
-  private SimulacaoDTO simulacao;
   
 }
