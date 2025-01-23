@@ -1,0 +1,30 @@
+{
+  "email": "teste@email.com",
+  "itens": [
+    {
+      "data": "2023-01-01",
+      "valor": 1000,
+      "tipoAumento": "ANIVERSARIO_PLANO"
+    },
+    {
+      "data": "2023-06-01",
+      "valor": 1500,
+      "tipoAumento": "FAIXA_ETARIA"
+    },
+    {
+      "data": "2024-01-01",
+      "valor": 1800,
+      "tipoAumento": "ANIVERSARIO_PLANO"
+    },
+    {
+      "data": "2024-07-01",
+      "valor": 2000,
+      "tipoAumento": "FAIXA_ETARIA"
+    },
+    {
+      "data": "2025-01-01",
+      "valor": 2500,
+      "tipoAumento": "ANIVERSARIO_PLANO"
+    }
+  ]
+}

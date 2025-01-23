@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{layout :: head('Simulação')}"></head>
+
+<body>
+	<header th:replace="~{layout :: navbar}"></header>
+	<main class="simulation">
+		<section class="heading">
+			<header>
+				<div class="container-fluid">
+					<div class="row">
+						<div class="col-sm-6 text-left">
+							<h1>
+								<i class="fa fa-calculator" aria-hidden="true"></i> Simulação
+							</h1>
+						</div>
+						<div class="col-sm-6">
+							<nav aria-label="breadcrumb" class="text-right">
+								<ol class="breadcrumb">
+									<li class="breadcrumb-item">
+										<i class="fa fa-dashboard"></i>
+										<a th:href="@{/}">Home</a>
+									</li>
+									<li class="breadcrumb-item active" aria-current="page">Simulação</li>
+								</ol>
+							</nav>
+						</div>
+					</div>
+				</div>
+			</header>
+		</section>
+
+		<section class="main-content grey-back">
+			<div class="container">
+				<form th:action="@{/simulacao}" method="post" id="simulationForm">
+					<div class="form-row align-items-center mb-3">
+							<div class="col-md-5">
+								<label for="nome">Nome</label>
+								<input type="text" id="nome" name="nome" class="form-control" placeholder="Digite seu nome" required>
+							</div>
+							<div class="col-md-5">
+								<label for="dataNascimento">Data de Nascimento</label>
+								<input type="text" id="dataNascimento" name="dataNascimento" class="form-control date-input" placeholder="DD/MM/AAAA" required>
+							</div>
+						</div>
+
+						<div class="form-row align-items-center mb-3">
+							<div class="col-md-5">
+								<label for="telefone">Telefone</label>
+								<input type="text" id="telefone" name="telefone" class="form-control" placeholder="(XX) XXXXX-XXXX" required oninput="formatPhoneNumber(this)">
+							</div>
+							<div class="col-md-5">
+								<label for="email">Email</label>
+								<input type="email" id="email" name="email" class="form-control" placeholder="Digite seu email" required oninput="validateEmail(this)">
+							</div>
+						</div>
+
+					<div id="itemsContainer">
+						<div class="form-row item-simulation align-items-center mb-3">
+							<div class="col-md-3">
+								<label for="data">Data da Alteração</label>
+								<input type="text" name="itens[0].data" class="form-control date-input"
+									placeholder="DD/MM/AAAA" required>
+							</div>
+							<div class="col-md-3">
+								<label for="valor">Valor do Plano</label>
+								<input type="text" name="itens[0].valor" class="form-control currency-input"
+									placeholder="R$ 0,00" required>
+							</div>
+							<div class="col-md-4">
+								<label for="tipoAumento">Tipo de Aumento</label>
+								<select name="itens[0].tipoAumento" class="form-control" required>
+									<option value="NENHUM">VALOR INICIAL DO PLANO</option>
+								</select>
+							</div>
+							<div class="col-md-2 text-center">
+								<i class="fa fa-trash text-danger remove-item-icon"
+									style="cursor: pointer; font-size: 1.2rem;" title="Excluir"></i>
+							</div>
+						</div>
+					</div>
+
+					<button type="button" class="btn btn-secondary mt-3" id="addItemButton">
+						<i class="fa fa-plus"></i> Adicionar
+					</button>
+
+					<button type="submit" class="btn btn-primary mt-3 float-right">
+						<i class="fa fa-save"></i> Simular
+					</button>
+				</form>
+			</div>
+		</section>
+	</main>
+	<footer th:replace="~{layout :: footer}"></footer>
+
+	<script>
+
+		document.getElementById('simulationForm').addEventListener('submit', function (event) {
+
+			// Prevenção da submissão do formulário, caso não haja pelo menos 2 linhas válidas
+			const itemsContainer = document.getElementById('itemsContainer');
+			const validItems = Array.from(itemsContainer.children).filter(item => {
+				const dataInput = item.querySelector('.date-input');
+				const valueInput = item.querySelector('.currency-input');
+				const tipoAumentoSelect = item.querySelector('select');
+
+				return (
+					dataInput.value.trim() !== '' &&
+					valueInput.value.trim() !== '' &&
+					tipoAumentoSelect.value.trim() !== ''
+				);
+			});
+
+			// Se não houver pelo menos 2 linhas válidas, previne o envio do formulário
+			if (validItems.length < 2) {
+				alert('Por favor, adicione pelo menos 2 linhas válidas de simulação.');
+				event.preventDefault();  // Impede o envio do formulário
+				return;  // Evita continuar a execução do código
+			}
+
+			// Converter as datas para o formato yyyy-MM-dd
+			document.querySelectorAll('.date-input').forEach(input => {
+				let dateValue = input.value;
+				const [day, month, year] = dateValue.split('/'); // Extrai o dia, mês e ano
+				input.value = `${year}-${month}-${day}`; // Converte para yyyy-MM-dd
+			});
+
+			// Converter os valores monetários para BigDecimal
+			document.querySelectorAll('.currency-input').forEach(input => {
+				let value = input.value.replace(/[^\d,]/g, ''); // Remove tudo que não for número ou vírgula
+				value = value.replace(',', '.'); // Substitui a vírgula por ponto
+				input.value = value; // Atualiza o campo com o valor numérico
+			});
+		});
+
+		// Validar valor monetário e impedir valores negativos
+		function formatCurrency(input) {
+			let value = input.value.replace(/\D/g, ''); // Remove caracteres não numéricos
+			value = (value / 100).toFixed(2); // Adiciona casas decimais
+			value = value.replace('.', ','); // Troca ponto por vírgula
+			input.value = `R$ ${value}`;
+		}
+
+		function validateCurrency(input) {
+			const value = parseFloat(input.value.replace(/[^0-9,]/g, '').replace(',', '.'));
+			if (value < 0) {
+				alert('O valor não pode ser negativo.');
+				input.value = 'R$ 0,00';
+			}
+		}
+
+		// Validar data no formato brasileiro
+		function isValidDate(date) {
+			const [day, month, year] = date.split('/').map(Number);
+			const isValidDay = day > 0 && day <= 31;
+			const isValidMonth = month > 0 && month <= 12;
+			const isValidYear = year > 0;
+			const dateObject = new Date(year, month - 1, day);
+			return (
+				isValidDay &&
+				isValidMonth &&
+				isValidYear &&
+				dateObject.getFullYear() === year &&
+				dateObject.getMonth() === month - 1 &&
+				dateObject.getDate() === day
+			);
+		}
+
+		function formatDate(input) {
+			let value = input.value.replace(/\D/g, ''); // Remove caracteres não numéricos
+			if (value.length > 2) value = value.slice(0, 2) + '/' + value.slice(2);
+			if (value.length > 5) value = value.slice(0, 5) + '/' + value.slice(5, 9);
+			input.value = value;
+
+			// Valida a data quando o usuário termina de inserir
+			if (value.length === 10 && !isValidDate(value)) {
+				alert('A data informada é inválida. Por favor, insira uma data válida no formato DD/MM/AAAA.');
+				input.value = `${year}-${month}-${day}`;  // Converte para yyyy-MM-dd
+			}
+		}
+
+		// Comparar duas datas (convertendo para formato Date)
+		function compareDates(date1, date2) {
+			const [day1, month1, year1] = date1.split('/').map(Number);
+			const [day2, month2, year2] = date2.split('/').map(Number);
+
+			const d1 = new Date(year1, month1 - 1, day1);
+			const d2 = new Date(year2, month2 - 1, day2);
+			return d1 > d2;
+		}
+
+		// Adicionar eventos aos campos existentes
+		document.querySelectorAll('.currency-input').forEach(input => {
+			input.addEventListener('input', function () {
+				formatCurrency(this);
+			});
+			input.addEventListener('blur', function () {
+				validateCurrency(this);
+			});
+		});
+
+		document.querySelectorAll('.date-input').forEach(input => {
+			input.addEventListener('input', function () {
+				formatDate(this);
+			});
+		});
+
+		document.getElementById('addItemButton').addEventListener('click', function () {
+			const itemsContainer = document.getElementById('itemsContainer');
+			const index = itemsContainer.children.length; // Índice da nova linha (antes de adicionar a nova linha)
+
+			// Adiciona a nova linha primeiro
+			addNewItem();
+
+			// Agora, valida a nova linha **após ser adicionada** ao DOM
+			if (index > 1) {  // A partir da segunda linha, validamos
+				const lastItem = itemsContainer.children[itemsContainer.children.length - 2]; // Última linha antes da nova
+				const lastItemValue = getNumericValue(lastItem.querySelector('.currency-input').value); // Extrai o valor numérico
+				const lastItemDate = lastItem.querySelector('.date-input').value;
+				const lastItemType = lastItem.querySelector('select').value;
+
+				const lastItemBefore = itemsContainer.children[itemsContainer.children.length - 3]; // Última linha antes da nova
+				const lastItemValueBefore = getNumericValue(lastItemBefore.querySelector('.currency-input').value); // Extrai o valor numérico
+				const lastItemDateBefore = lastItemBefore.querySelector('.date-input').value;
+
+				// Validação dos campos da última linha antes da nova
+				if (!lastItemDate || !lastItemType || isNaN(lastItemValue)) {
+					alert('Por favor, preencha todos os campos da última linha antes de adicionar uma nova.');
+					itemsContainer.removeChild(itemsContainer.lastChild); // Remove a última linha
+					return; // Impede a adição se algum campo estiver vazio
+				}
+
+				// Validar se o valor da nova linha é maior que o da linha anterior
+				if (lastItemValue <= lastItemValueBefore) {
+					alert('O valor da nova linha deve ser maior que o da linha anterior.');
+					itemsContainer.removeChild(itemsContainer.lastChild); // Remove a última linha
+					return; // Impede a adição da linha caso o valor não seja maior
+				}
+
+				// Validar se a data da nova linha é maior que a data da linha anterior
+				if (!compareDates(lastItemDate, lastItemDateBefore)) {
+					alert('A data da nova linha deve ser maior que a da linha anterior.');
+					itemsContainer.removeChild(itemsContainer.lastChild); // Remove a última linha
+					return; // Impede a adição da linha caso a data não seja maior
+				}
+			}
+		});
+
+		function getNumericValue(value) {
+			// Remove qualquer símbolo de moeda, espaços, e vírgula ou ponto
+			value = value.replace(/[^\d,]/g, ''); // Remove caracteres não numéricos
+			value = value.replace(',', '.'); // Substitui a vírgula por ponto para compatibilidade com parseFloat
+			return parseFloat(value) || 0; // Retorna o valor numérico ou 0 se inválido
+		}
+
+		// Função que adiciona uma nova linha
+		function addNewItem() {
+			const itemsContainer = document.getElementById('itemsContainer');
+			const index = itemsContainer.children.length;
+			
+			const lastItem = itemsContainer.lastElementChild; // Última linha (se existir)
+
+			    // Validar se a data do último item está preenchida
+			    const lastItemDateInput = lastItem ? lastItem.querySelector('.date-input') : null;
+			    if (lastItemDateInput && lastItemDateInput.value.trim() === '') {
+			        alert('Por favor, preencha a data na última linha antes de adicionar uma nova.');
+			        return; // Impede a adição de uma nova linha
+			    }
+
+			const newItem = document.createElement('div');
+			newItem.className = 'form-row item-simulation align-items-center mb-3';
+			newItem.innerHTML = `
+            <div class="col-md-3">
+                <label for="data">Data da Alteração</label>
+                <input type="text" name="itens[${index}].data" class="form-control date-input" placeholder="DD/MM/AAAA" required>
+            </div>
+            <div class="col-md-3">
+                <label for="valor">Valor do Plano</label>
+                <input type="text" name="itens[${index}].valor" class="form-control currency-input" placeholder="R$ 0,00" required>
+            </div>
+            <div class="col-md-4">
+                <label for="tipoAumento">Tipo de Aumento</label>
+                <select name="itens[${index}].tipoAumento" class="form-control" required>
+                    <option value="ANIVERSARIO_PLANO">Aniversário do Plano</option>
+                    <option value="FAIXA_ETARIA">Faixa Etária</option>
+					<option value="NENHUM">Sem Motivo</option>
+                </select>
+            </div>
+            <div class="col-md-2 text-center">
+                <i class="fa fa-trash text-danger remove-item-icon" 
+                   style="cursor: pointer; font-size: 1.2rem;" 
+                   title="Excluir"></i>
+            </div>`;
+			itemsContainer.appendChild(newItem);
+
+			// Adicionar eventos aos novos campos
+			const currencyInput = newItem.querySelector('.currency-input');
+			currencyInput.addEventListener('input', function () {
+				formatCurrency(this);
+			});
+			currencyInput.addEventListener('blur', function () {
+				validateCurrency(this);
+			});
+
+			const dateInput = newItem.querySelector('.date-input');
+			dateInput.addEventListener('input', function () {
+				formatDate(this);
+			});
+
+			// Adicionar evento de exclusão
+			newItem.querySelector('.remove-item-icon').addEventListener('click', function () {
+				itemsContainer.removeChild(newItem);
+			});
+		}
+
+		// Evento de exclusão para ícones existentes
+		document.querySelectorAll('.remove-item-icon').forEach(icon => {
+			icon.addEventListener('click', function () {
+				const itemsContainer = document.getElementById('itemsContainer');
+				itemsContainer.removeChild(this.closest('.form-row'));
+			});
+		});
+
+		// Formatar o telefone para o formato (XX) XXXXX-XXXX
+		function formatPhoneNumber(input) {
+			let value = input.value.replace(/\D/g, ''); // Remove todos os caracteres não numéricos
+			if (value.length > 10) {
+				value = value.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3'); // Formata o telefone
+			} else if (value.length > 6) {
+				value = value.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3'); // Formata o telefone para menos dígitos
+			} else if (value.length > 2) {
+				value = value.replace(/(\d{2})(\d{4})/, '($1) $2'); // Formata a DDD
+			}
+			input.value = value;
+		}
+
+		// Validar o email (aceita um formato básico de email)
+		function validateEmail(input) {
+			const emailPattern = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
+			if (!emailPattern.test(input.value)) {
+				input.setCustomValidity('Por favor, insira um email válido.');
+			} else {
+				input.setCustomValidity(''); // Remove a mensagem de erro se o email for válido
+			}
+		}
+	</script>
+
+</body>
+
+</html>

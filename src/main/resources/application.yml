@@ -1,0 +1,65 @@
+server:
+  port: ${SERVER_PORT:5988}
+  max-http-request-header-size: 65536  # Tamanho máximo do cabeçalho HTTP
+  tomcat:
+    max-swallow-size: 2MB             # Limita o tamanho do corpo da requisição
+    connection-timeout: 30000         # Tempo de espera para novas conexões (30 segundos)
+    max-connections: 50              # Número máximo de conexões simultâneas
+    max-threads: 10                  # Limita o número de threads que o Tomcat pode usar (ajustado para baixo consumo)
+
+spring:
+  application:
+    name: prosaudeadv
+
+  # Configuração do DataSource com HikariCP (pool de conexões)
+  datasource:
+    url: jdbc:postgresql://145.223.94.252:5432/prosaudeadv
+    username: prosaudeadv
+    password: prosaudeadv
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5           # Limita o número de conexões simultâneas
+      minimum-idle: 2                # Número mínimo de conexões ociosas
+      idle-timeout: 30000            # Tempo máximo que uma conexão pode ficar ociosa
+      max-lifetime: 300000          # Tempo máximo de vida de uma conexão
+      connection-timeout: 30000      # Tempo máximo de espera para obter uma conexão
+      connection-test-query: SELECT 1  # Teste de conexões para garantir que não fiquem abertas
+      pool-name: HikariCP            # Nome do pool (útil para depuração)
+
+  jpa:
+    hibernate:
+      ddl-auto: update               # Configuração do Hibernate (auto-update de schema)
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        hibernate.cache.use_second_level_cache: false   # Desativa o cache de segundo nível
+        hibernate.cache.use_query_cache: false          # Desativa o cache de consulta
+        hibernate.enable_lazy_load_no_trans: true       # Reduz a carga de memória ao carregar dados
+
+  # Configuração do Web e Thymeleaf
+  web:
+    locale: pt_BR
+    locale-resolver: fixed
+    resources:
+      static-locations: classpath:/static/
+
+  thymeleaf:
+    prefix: classpath:/templates/
+    suffix: .html
+    mode: HTML
+    cache: false  # Desativa o cache do Thymeleaf para reduzir o consumo de memória
+
+  # Reduz o tempo de resposta de HTTP e outros parâmetros para economia de recursos
+  mvc:
+    static-path-pattern: /static/**
+
+  # Desativa o monitoramento de sessões (menos uso de memória)
+  session:
+    timeout: 15m   # Tempo de expiração da sessão, reduzindo a carga de sessões persistentes
+
+  # Monitoramento e logging
+  logging:
+    level:
+      org.springframework: ERROR  # Aumenta o nível para evitar logs detalhados
+      org.hibernate: ERROR         # Reduz ainda mais o log do Hibernate
+      org.apache: ERROR            # Caso utilize Apache ou outras dependências
