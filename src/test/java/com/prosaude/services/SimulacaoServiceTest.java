@@ -1,148 +1,185 @@
 package com.prosaude.services;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.Mockito.*;
-
-import java.io.File;
-import java.io.IOException;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.prosaude.controllers.requests.SimulacaoRequest;
 import com.prosaude.model.Cliente;
 import com.prosaude.model.IndiceANS;
+import com.prosaude.model.ItemSimulacao;
 import com.prosaude.model.Simulacao;
-import com.prosaude.model.SimulacaoPlano;
+import com.prosaude.model.TipoAumento;
 import com.prosaude.repositories.ClienteRepository;
 import com.prosaude.repositories.IndiceANSRepository;
-import com.prosaude.repositories.SimulacaoPlanoRepository;
 import com.prosaude.repositories.SimulacaoRepository;
 
 @ExtendWith(MockitoExtension.class)
-class SimulacaoServiceTest {
+public class SimulacaoServiceTest {
 
-    @Mock
-    private ClienteRepository clienteRepository;
+  @InjectMocks
+  private SimulacaoService simulacaoService;
 
-    @Mock
-    private SimulacaoPlanoRepository simulacaoPlanoRepository;
+  @Mock
+  private IndiceANSRepository indiceANSRepository;
 
-    @Mock
-    private SimulacaoRepository simulacaoRepository;
+  @Mock
+  private SimulacaoRepository simulacaoRepository; 
 
-    @Mock
-    private IndiceANSRepository indiceANSRepository;
+  @Mock
+  private ClienteRepository clienteRepository;
+    
+  @BeforeEach
+  void setUp() {
+    // Simulando o comportamento do índice ANS
+    Mockito.when(indiceANSRepository.findIndicePorData(Mockito.any(LocalDate.class)))
+      .thenAnswer(invocation -> {
+          LocalDate data = invocation.getArgument(0, LocalDate.class);
+          List<IndiceANS> indices = List.of(
+              new IndiceANS(1L, BigDecimal.valueOf(9.65), LocalDate.of(2014, 4, 1), LocalDate.of(2015, 3, 31)),
+              new IndiceANS(2L, BigDecimal.valueOf(13.55), LocalDate.of(2015, 4, 1), LocalDate.of(2016, 3, 31)),
+              new IndiceANS(3L, BigDecimal.valueOf(13.57), LocalDate.of(2016, 4, 1), LocalDate.of(2017, 3, 31)),
+              new IndiceANS(4L, BigDecimal.valueOf(13.55), LocalDate.of(2017, 4, 1), LocalDate.of(2018, 3, 31)),
+              new IndiceANS(5L, BigDecimal.valueOf(10.00), LocalDate.of(2018, 4, 1), LocalDate.of(2019, 3, 31)),
+              new IndiceANS(6L, BigDecimal.valueOf(7.35), LocalDate.of(2019, 4, 1), LocalDate.of(2020, 3, 31)),
+              new IndiceANS(7L, BigDecimal.valueOf(-8.19), LocalDate.of(2020, 4, 1), LocalDate.of(2021, 3, 31)),
+              new IndiceANS(8L, BigDecimal.valueOf(15.50), LocalDate.of(2021, 4, 1), LocalDate.of(2022, 3, 31)),
+              new IndiceANS(9L, BigDecimal.valueOf(10.26), LocalDate.of(2022, 4, 1), LocalDate.of(2023, 3, 31)),
+              new IndiceANS(10L, BigDecimal.valueOf(9.63), LocalDate.of(2023, 4, 1), LocalDate.of(2024, 3, 31)),
+              new IndiceANS(11L, BigDecimal.valueOf(6.91), LocalDate.of(2024, 4, 1), LocalDate.of(2025, 3, 31))
+          );
+          return indices.stream()
+              .filter(indice -> !data.isBefore(indice.getDataInicio()) && data.isBefore(indice.getDataFim()))
+              .findFirst();
+      });
 
-    @InjectMocks
-    private SimulacaoService simulacaoService;
+    Mockito.when(simulacaoRepository.save(Mockito.any(Simulacao.class)))
+      .thenAnswer(invocation -> invocation.getArgument(0)); 
+    
+ // Dado um cliente simulado
+    Cliente cliente = new Cliente();
+    cliente.setNome("João");
+    cliente.setEmail("joao@example.com");
+    
+    when(clienteRepository.findByEmail(anyString())).thenReturn(java.util.Optional.of(cliente));
 
-    @Captor
-    private ArgumentCaptor<List<SimulacaoPlano>> planosCaptor;
+  }
+  
+  @Test
+  void testCalculoComPercentualDiferenca() {
+      SimulacaoRequest.ItemSimulacao item1 = new SimulacaoRequest.ItemSimulacao(
+          LocalDate.of(2015, 1, 1), BigDecimal.valueOf(1000), TipoAumento.NENHUM);
+      SimulacaoRequest.ItemSimulacao item2 = new SimulacaoRequest.ItemSimulacao(
+          LocalDate.of(2016, 1, 1), BigDecimal.valueOf(1500), TipoAumento.ANIVERSARIO_PLANO);
+      SimulacaoRequest.ItemSimulacao item3 = new SimulacaoRequest.ItemSimulacao(
+          LocalDate.of(2017, 1, 1), BigDecimal.valueOf(1800), TipoAumento.ANIVERSARIO_PLANO);
+      SimulacaoRequest.ItemSimulacao item4 = new SimulacaoRequest.ItemSimulacao(
+          LocalDate.of(2018, 10, 1), BigDecimal.valueOf(2400), TipoAumento.FAIXA_ETARIA);
 
-    private Cliente cliente;
+      SimulacaoRequest request = new SimulacaoRequest(
+          "João Silva", "joao@email.com", "123456789", LocalDate.of(1990, 5, 15),
+          List.of(item1, item2, item3, item4)
+      );
 
-    @BeforeEach
-    void setUp() {
-        cliente = Cliente.builder()
-                .email("teste@email.com")
-                .nome("Cliente Teste")
-                .simulacoes(new ArrayList<>())
-                .build();
-    }
+      Simulacao simulacao = simulacaoService.salvarSimulacao(request);
 
-    private SimulacaoRequest criarSimulacaoRequest() throws IOException {
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
-        File jsonFile = new File("src/test/resources/simulacao.json");
-        return objectMapper.readValue(jsonFile, SimulacaoRequest.class);
-    }
+      // Verificações
+      assertEquals(new BigDecimal("6700"), simulacao.getValorTotalPago());
+      assertEquals(new BigDecimal("4843.64"), simulacao.getValorTotalANS());
 
-    @Test
-    void testProcessarSimulacaoComAumentosValidos() throws IOException {
-        SimulacaoRequest request = criarSimulacaoRequest();
+      // Verificar a diferença percentual
+      BigDecimal percentualDiferenca = simulacao.getValorTotalPago()
+              .subtract(simulacao.getValorTotalANS())
+              .divide(simulacao.getValorTotalANS(), 4, RoundingMode.HALF_UP)
+              .multiply(BigDecimal.valueOf(100));
+      assertEquals(new BigDecimal("38.33"), percentualDiferenca.setScale(2, RoundingMode.HALF_UP));
 
-        // Mock de cliente e índice
-        when(clienteRepository.findByEmail(request.getEmail())).thenReturn(Optional.of(cliente));
-        when(indiceANSRepository.findIndicePorData(any(LocalDate.class)))
-                .thenReturn(Optional.of(new IndiceANS(1L, BigDecimal.valueOf(6.0), LocalDate.now(), LocalDate.now().plusYears(1))));
+      // Verificar percentual de aumento para o primeiro item
+      ItemSimulacao primeiroItem = simulacao.getItens().get(0);
+      assertEquals(new BigDecimal("0.00"), primeiroItem.getPercentualAumentoReal());
+      assertEquals(new BigDecimal("9.65"), primeiroItem.getPercentualANS()); // conforme o índice ANS de 2015
+      assertEquals(new BigDecimal("0.0000"), primeiroItem.getPercentualDiferenca());
+  }
 
-        simulacaoService.processarSimulacao(request);
+  @Test
+  void testCalculoComIndicesANS() {
+      SimulacaoRequest.ItemSimulacao item1 = new SimulacaoRequest.ItemSimulacao(
+          LocalDate.of(2015, 1, 1), BigDecimal.valueOf(1000), TipoAumento.NENHUM);
+      SimulacaoRequest.ItemSimulacao item2 = new SimulacaoRequest.ItemSimulacao(
+          LocalDate.of(2016, 1, 1), BigDecimal.valueOf(1500), TipoAumento.ANIVERSARIO_PLANO);
+      SimulacaoRequest.ItemSimulacao item3 = new SimulacaoRequest.ItemSimulacao(
+          LocalDate.of(2017, 1, 1), BigDecimal.valueOf(1800), TipoAumento.ANIVERSARIO_PLANO);
+      SimulacaoRequest.ItemSimulacao item4 = new SimulacaoRequest.ItemSimulacao(
+          LocalDate.of(2018, 10, 1), BigDecimal.valueOf(2400), TipoAumento.FAIXA_ETARIA);
 
-        verify(simulacaoPlanoRepository, times(1)).saveAll(planosCaptor.capture());
-        verify(simulacaoRepository, times(1)).save(any(Simulacao.class));
+      SimulacaoRequest request = new SimulacaoRequest(
+          "João Silva", "joao@email.com", "123456789", LocalDate.of(1990, 5, 15),
+          List.of(item1, item2, item3, item4)
+      );
 
-        List<SimulacaoPlano> planosSalvos = planosCaptor.getValue();
-        assertEquals(5, planosSalvos.size());
+      Simulacao simulacao = simulacaoService.salvarSimulacao(request);
 
-        // Verifique os cálculos de cada plano
-        SimulacaoPlano primeiroPlano = planosSalvos.get(0);
-        assertEquals(BigDecimal.ZERO, primeiroPlano.getAumentoPlano()); // Primeiro item não tem aumento
-        assertEquals(BigDecimal.ZERO, primeiroPlano.getAumentoDevido());
-        assertEquals(BigDecimal.ZERO, primeiroPlano.getPercentualAumentoPlano());
-        assertEquals(BigDecimal.ZERO, primeiroPlano.getPercentualDiferenca());
+      // Verificações
+      assertEquals(new BigDecimal("6700"), simulacao.getValorTotalPago()); 
+      assertEquals(new BigDecimal("4843.64"), simulacao.getValorTotalANS()); 
+  }
 
-        SimulacaoPlano segundoPlano = planosSalvos.get(1);
-        assertNotNull(segundoPlano.getAumentoPlano());
-        assertNotNull(segundoPlano.getAumentoDevido());
-        assertTrue(segundoPlano.getPercentualDiferenca().compareTo(BigDecimal.ZERO) >= 0);
-    }
 
-    @Test
-    void testProcessarSimulacaoSemIndiceANS() throws IOException {
-        SimulacaoRequest request = criarSimulacaoRequest();
+  @Test
+  public void testSimulacaoComAumentosDiversos() {
+    // Cenários de teste com os índices reais
+    SimulacaoRequest request = SimulacaoRequest.builder()
+            .nome("João da Silva")
+            .email("joao.silva@email.com")
+            .telefone("11999999999")
+            .dataNascimento(LocalDate.of(1980, 1, 1))
+            .itens(Arrays.asList(
+                    SimulacaoRequest.ItemSimulacao.builder()
+                            .data(LocalDate.of(2015, 1, 1))
+                            .valor(BigDecimal.valueOf(1000))
+                            .tipoAumento(TipoAumento.NENHUM)
+                            .build(),
+                    SimulacaoRequest.ItemSimulacao.builder()
+                            .data(LocalDate.of(2016, 1, 1))
+                            .valor(BigDecimal.valueOf(1500))
+                            .tipoAumento(TipoAumento.ANIVERSARIO_PLANO)
+                            .build(),
+                    SimulacaoRequest.ItemSimulacao.builder()
+                            .data(LocalDate.of(2017, 1, 1))
+                            .valor(BigDecimal.valueOf(1800))
+                            .tipoAumento(TipoAumento.ANIVERSARIO_PLANO)
+                            .build(),
+                    SimulacaoRequest.ItemSimulacao.builder()
+                            .data(LocalDate.of(2018, 10, 1))
+                            .valor(BigDecimal.valueOf(2400))
+                            .tipoAumento(TipoAumento.FAIXA_ETARIA)
+                            .build()
+            ))
+            .build();
 
-        // Mock de cliente e ausência de índice ANS
-        when(clienteRepository.findByEmail(request.getEmail())).thenReturn(Optional.of(cliente));
-        when(indiceANSRepository.findIndicePorData(any(LocalDate.class))).thenReturn(Optional.empty());
+    // Execução da simulação
+    Simulacao simulacao = simulacaoService.salvarSimulacao(request);
 
-        simulacaoService.processarSimulacao(request);
+    // Verificações
+    assertNotNull(simulacao);
+    assertEquals(4, simulacao.getItens().size());
 
-        verify(simulacaoPlanoRepository, times(1)).saveAll(planosCaptor.capture());
-        verify(simulacaoRepository, times(1)).save(any(Simulacao.class));
-
-        List<SimulacaoPlano> planosSalvos = planosCaptor.getValue();
-        assertEquals(5, planosSalvos.size());
-
-        // Verifique que não houve aumento devido à ausência de índice ANS
-        for (SimulacaoPlano plano : planosSalvos) {
-            assertEquals(BigDecimal.ZERO, plano.getAumentoDevido());
-            assertEquals(BigDecimal.ZERO, plano.getPercentualDiferenca());
-        }
-    }
-
-    @Test
-    void testProcessarSimulacaoComNovoCliente() throws IOException {
-        SimulacaoRequest request = criarSimulacaoRequest();
-
-        // Mock de cliente inexistente
-        when(clienteRepository.findByEmail(request.getEmail())).thenReturn(Optional.empty());
-        when(clienteRepository.save(any(Cliente.class))).thenReturn(cliente);
-        when(indiceANSRepository.findIndicePorData(any(LocalDate.class)))
-                .thenReturn(Optional.of(new IndiceANS(1L, BigDecimal.valueOf(5.0), LocalDate.now(), LocalDate.now().plusYears(1))));
-
-        simulacaoService.processarSimulacao(request);
-
-        verify(clienteRepository, times(1)).save(any(Cliente.class));
-        verify(simulacaoPlanoRepository, times(1)).saveAll(planosCaptor.capture());
-        verify(simulacaoRepository, times(1)).save(any(Simulacao.class));
-
-        List<SimulacaoPlano> planosSalvos = planosCaptor.getValue();
-        assertEquals(5, planosSalvos.size());
-    }
+    // Verificar valores
+    ItemSimulacao primeiroItem = simulacao.getItens().get(0);
+    assertEquals(BigDecimal.valueOf(1000), primeiroItem.getValor());
+    assertEquals(BigDecimal.ZERO, primeiroItem.getValorAumentoReal());
+    assertEquals(new BigDecimal("0.00"), primeiroItem.getPercentualAumentoReal());
+  }
 }

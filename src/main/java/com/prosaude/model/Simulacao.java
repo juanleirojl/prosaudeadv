@@ -39,14 +39,10 @@ public class Simulacao {
     private Cliente cliente;
 
     @OneToMany(mappedBy = "simulacao", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
-    private List<SimulacaoPlano> simulacoesPlano;
-
-    @Column(name = "total_pago", nullable = false)
-    private BigDecimal totalPago;
-
-    @Column(name = "total_devido", nullable = false)
-    private BigDecimal totalDevido;
-
-    @Column(name = "percentual_diferenca", nullable = false)
+    private List<ItemSimulacao> itens;
+    
+    private BigDecimal valorTotalPago;
+    private BigDecimal valorTotalANS;
     private BigDecimal percentualDiferenca;
+
 }

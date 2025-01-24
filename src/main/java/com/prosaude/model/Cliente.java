@@ -32,5 +32,5 @@ public class Cliente {
     private LocalDate dataNascimento;
 
     @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<SimulacaoPlano> simulacoes;
+    private List<Simulacao> simulacoes;
 }

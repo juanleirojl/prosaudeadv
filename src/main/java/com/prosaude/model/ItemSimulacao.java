@@ -23,7 +23,7 @@ import lombok.ToString;
 @AllArgsConstructor
 @Builder
 @ToString
-public class SimulacaoPlano{
+public class ItemSimulacao{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -37,11 +37,6 @@ public class SimulacaoPlano{
     @Enumerated(EnumType.STRING)
     private TipoAumento tipoAumento;
     
-    private BigDecimal aumentoPlano;
-    private BigDecimal aumentoDevido;
-    private BigDecimal percentualAumentoPlano; 
-    private BigDecimal percentualDiferenca;
-
     @ManyToOne
     @JoinColumn(name = "cliente_id")
     private Cliente cliente;
@@ -53,4 +48,10 @@ public class SimulacaoPlano{
     @ManyToOne
     @JoinColumn(name = "simulacao_id")
     private Simulacao simulacao;
+    
+    private BigDecimal valorAumentoReal;
+    private BigDecimal percentualAumentoReal;
+    private BigDecimal valorANS;
+    private BigDecimal percentualANS;
+    private BigDecimal percentualDiferenca;
 }

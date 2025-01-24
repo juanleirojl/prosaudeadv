@@ -14,25 +14,28 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class SimulacaoPlanoDTO implements Serializable {
+public class ItemSimulacaoDTO implements Serializable {
 
   private static final long serialVersionUID = 1276326018516095718L;
 
   private Long id;
 
   private BigDecimal valor;
-
   @DateTimeFormat(pattern = "yyyy-MM-dd")
   private LocalDate data;
 
   private TipoAumento tipoAumento;
   
-  private BigDecimal aumentoPlano;
-  private BigDecimal aumentoDevido;
-  private BigDecimal percentualAumentoPlano; 
-  private BigDecimal percentualDiferenca;
 
+  private ClienteDTO cliente;
+  
   private IndiceANSDTO indiceANS;
+  
+  private BigDecimal valorAumentoReal;
+  private BigDecimal percentualAumentoReal;
+  private BigDecimal valorANS;
+  private BigDecimal percentualANS;
+  private BigDecimal percentualDiferenca;
   
   
 }

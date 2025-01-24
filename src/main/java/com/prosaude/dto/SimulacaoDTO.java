@@ -16,11 +16,12 @@ import lombok.NoArgsConstructor;
 public class SimulacaoDTO implements Serializable {
 
   private static final long serialVersionUID = 5313390546489815581L;
+  
   private Long id;
   private LocalDate dataSimulacao;
   private ClienteDTO cliente;
-  private List<SimulacaoPlanoDTO> simulacoesPlano;
-  private BigDecimal totalPago;
-  private BigDecimal totalDevido;
+  private List<ItemSimulacaoDTO> itens;
+  private BigDecimal valorTotalPago;
+  private BigDecimal valorTotalANS;
   private BigDecimal percentualDiferenca;
 }

@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{layout :: head('Simulações')}"></head>
+<head th:replace="~{layout :: head('Simulações')}">
+	<meta charset="UTF-8">
+</head>
 <body>
 <header th:replace="~{layout :: navbar}"></header>
 <main class="simulacao">
@@ -50,7 +52,7 @@
                             <th onclick="sortTable(0)">Cliente</th>
                             <th onclick="sortTable(1)">Data da Simulação</th>
                             <th onclick="sortTable(2)">Total Pago</th>
-                            <th onclick="sortTable(3)">Total Devido</th>
+                            <th onclick="sortTable(3)">Total ANS</th>
                             <th onclick="sortTable(4)">Percentual de Diferença</th>
                             <th onclick="sortTable(5)">Diferença (R$)</th>
 							<th>Ação</th>
@@ -60,10 +62,10 @@
 						<tr th:each="simulacao : ${simulacoes}" th:attr="data-id=${simulacao.id}" onclick="fetchDetails(this)">
 						    <td th:text="${simulacao.cliente.nome}"></td>
 						    <td th:text="${#temporals.format(simulacao.dataSimulacao, 'dd/MM/yyyy')}"></td>
-						    <td th:text="${#numbers.formatCurrency(simulacao.totalPago)}"></td>
-						    <td th:text="${#numbers.formatCurrency(simulacao.totalDevido)}"></td>
+						    <td th:text="${#numbers.formatCurrency(simulacao.valorTotalPago)}"></td>
+						    <td th:text="${#numbers.formatCurrency(simulacao.valorTotalANS)}"></td>
 						    <td th:text="${simulacao.percentualDiferenca + ' %'}"></td>
-						    <td th:text="${#numbers.formatCurrency(simulacao.totalPago.subtract(simulacao.totalDevido))}"></td>
+						    <td th:text="${#numbers.formatCurrency(simulacao.valorTotalPago.subtract(simulacao.valorTotalANS))}"></td>
 							<td>
 				                <button class="btn btn-success btn-sm" onclick="exportRowToExcel(this)">
 				                    <i class="fa fa-file-excel-o" aria-hidden="true"></i>
@@ -100,87 +102,87 @@
 <script>
 	
 	function exportRowToExcel(button) {
-	    // Encontrar a linha da tabela onde o botão foi clicado
-	    const row = button.closest("tr");
+	        // Encontrar a linha da tabela onde o botão foi clicado
+	        const row = button.closest("tr");
 
-	    // Pegar os dados da linha da simulação
-	    const cells = row.getElementsByTagName("td");
+	        // Pegar os dados da linha da simulação
+	        const cells = row.getElementsByTagName("td");
 
-	    const data = {
-	        cliente: cells[0].textContent.trim(),
-	        dataSimulacao: cells[1].textContent.trim(),
-	        totalPago: cells[2].textContent.trim().replace("R$", "").trim(), // Remover "R$"
-	        totalDevido: cells[3].textContent.trim().replace("R$", "").trim(), // Remover "R$"
-	        percentualDiferenca: cells[4].textContent.trim(),
-	        diferenca: cells[5].textContent.trim().replace("R$", "").trim(), // Remover "R$"
-	    };
+	        const data = {
+	            cliente: cells[0].textContent.trim(),
+	            dataSimulacao: cells[1].textContent.trim(),
+	            valorTotalPago: cells[2].textContent.trim().replace("R$", "").replace(".", "").replace(",", ".").trim(), // Remover "R$"
+	            valorTotalANS: cells[3].textContent.trim().replace("R$", "").replace(".", "").replace(",", ".").trim(), // Remover "R$"
+	            percentualDiferenca: cells[4].textContent.trim(),
+	            diferenca: cells[5].textContent.trim().replace("R$", "").replace(".", "").replace(",", ".").trim().trim(), // Remover "R$"
+	        };
 
-	    // Supondo que você tenha uma função que consulta os detalhes da simulação por ID
-	    const simulacaoId = row.getAttribute("data-id");
-	    fetch(`/simulacao/detalhes/${simulacaoId}`)
-	        .then(response => response.json())
-	        .then(detalhes => {
-	            // Verificar se simulacoesPlano existe
-	            if (!detalhes || !detalhes.simulacoesPlano || detalhes.simulacoesPlano.length === 0) {
-	                console.error("Detalhes não encontrados.");
-	                return;
-	            }
+	        // Supondo que você tenha uma função que consulta os detalhes da simulação por ID
+	        const simulacaoId = row.getAttribute("data-id");
+	        fetch(`/simulacao/detalhes/${simulacaoId}`)
+	            .then(response => response.json())
+	            .then(detalhes => {
+	                // Verificar se simulacoesPlano existe
+	                if (!detalhes || !detalhes.itens || detalhes.itens.length === 0) {
+	                    console.error("Detalhes não encontrados.");
+	                    return;
+	                }
 
-	            // Adiciona os detalhes filhos à exportação
-	            const detalhesData = detalhes.simulacoesPlano.map(plano => {
-	                return [
-	                    plano.data ? plano.data : '',
-	                    plano.valor ? plano.valor.toFixed(2) : '0.00', // Formatar valor
-	                    plano.aumentoDevido ? plano.aumentoDevido.toFixed(2) : '0.00',
-	                    plano.aumentoPlano ? plano.aumentoPlano.toFixed(2) : '0.00',
-	                    plano.percentualAumentoPlano ? plano.percentualAumentoPlano.toFixed(2) : '0.00',
-	                    plano.percentualDiferenca ? plano.percentualDiferenca.toFixed(2) : '0.00',
-	                    plano.tipoAumento || 'NENHUM' // Tipo de aumento
+	                // Adiciona os detalhes filhos à exportação
+	                const detalhesData = detalhes.itens.map(plano => {
+	                    return [
+	                        plano.data ? plano.data : '',
+	                        plano.valor ? plano.valor.toFixed(3) : '0.000', // Formatar valor com 3 casas
+	                        plano.valorANS ? plano.valorANS.toFixed(3) : '0.000',
+	                        plano.valorAumentoReal ? plano.valorAumentoReal.toFixed(3) : '0.000',
+	                        plano.percentualAumentoReal ? plano.percentualAumentoReal.toFixed(3) : '0.000',
+	                        plano.percentualDiferenca ? plano.percentualDiferenca.toFixed(3) : '0.000',
+	                        plano.tipoAumento || 'NENHUM' // Tipo de aumento
+	                    ];
+	                });
+
+	                // Adiciona as informações principais e os detalhes filhos ao CSV
+	                const csvData = [
+	                    ["Cliente", "Data da Simulacao", "Total Pago", "Total ANS", "Percentual de Diferenca", "Diferenca (R$)"],
+	                    [
+	                        data.cliente,
+	                        data.dataSimulacao,
+	                        data.valorTotalPago, // Formatar para 3 casas decimais
+	                        parseFloat(data.valorTotalANS).toFixed(3), // Formatar para 3 casas decimais
+	                        data.percentualDiferenca,
+	                        parseFloat(data.diferenca).toFixed(3), // Formatar para 3 casas decimais
+	                    ],
+	                    [] // Linha em branco para separar os detalhes
 	                ];
+
+	                // Adiciona os detalhes dos planos no CSV
+	                csvData.push(["Data", "Valor Plano", "Valor ANS", "Aumento Plano", "Percentual Aumento Plano", "Percentual Diferenca", "Tipo Aumento"]); // Cabeçalhos dos detalhes
+	                detalhesData.forEach(detail => csvData.push(detail));
+
+	                // Criar o CSV com UTF-8
+	                let csvContent = "data:text/csv;charset=utf-8,";
+	                csvData.forEach(function (rowArray) {
+	                    const row = rowArray.join(",");
+	                    csvContent += row + "\r\n"; // Adiciona cada linha no CSV
+	                });
+
+	                // Criar o nome do arquivo com o nome do cliente
+	                const fileName = `simulacao_${data.cliente.replace(/\s+/g, '_')}.csv`; // Substitui espaços por underscores no nome
+
+	                // Criar o link de download
+	                const encodedUri = encodeURI(csvContent);
+	                const link = document.createElement("a");
+	                link.setAttribute("href", encodedUri);
+	                link.setAttribute("download", fileName); // Nome do arquivo com o nome da simulação
+	                document.body.appendChild(link);
+
+	                // Disparar o clique para download
+	                link.click();
+	            })
+	            .catch(error => {
+	                console.error("Erro ao buscar detalhes da simulação:", error);
 	            });
-
-	            // Adiciona as informações principais e os detalhes filhos ao CSV
-	            const csvData = [
-	                ["Cliente", "Data da Simulação", "Total Pago", "Total Devido", "Percentual de Diferença", "Diferença (R$)"],
-	                [
-	                    data.cliente,
-	                    data.dataSimulacao,
-	                    parseFloat(data.totalPago).toFixed(2), // Formatar para 2 casas decimais
-	                    parseFloat(data.totalDevido).toFixed(2), // Formatar para 2 casas decimais
-	                    data.percentualDiferenca,
-	                    parseFloat(data.diferenca).toFixed(2), // Formatar para 2 casas decimais
-	                ],
-	                [] // Linha em branco para separar os detalhes
-	            ];
-
-	            // Adiciona os detalhes dos planos no CSV
-	            csvData.push(["Data", "Valor", "Aumento Devido", "Aumento Plano", "Percentual Aumento Plano", "Percentual Diferença", "Tipo Aumento"]); // Cabeçalhos dos detalhes
-	            detalhesData.forEach(detail => csvData.push(detail));
-
-	            // Criar o CSV
-	            let csvContent = "data:text/csv;charset=utf-8,";
-	            csvData.forEach(function (rowArray) {
-	                const row = rowArray.join(",");
-	                csvContent += row + "\r\n"; // Add each row to CSV
-	            });
-
-	            // Concatenar o nome do arquivo com o nome do cliente
-	            const fileName = `simulacao_${data.cliente.replace(/\s+/g, '_')}.csv`; // Substitui espaços por underscores no nome
-
-	            // Criar o link de download
-	            const encodedUri = encodeURI(csvContent);
-	            const link = document.createElement("a");
-	            link.setAttribute("href", encodedUri);
-	            link.setAttribute("download", fileName); // Nome do arquivo com o nome da simulação
-	            document.body.appendChild(link);
-
-	            // Disparar o clique para download
-	            link.click();
-	        })
-	        .catch(error => {
-	            console.error("Erro ao obter detalhes:", error);
-	        });
-	}
+	    }
 
 	
 	document.addEventListener("DOMContentLoaded", function () {
@@ -212,22 +214,22 @@
 	                            <thead>
 	                                <tr>
 	                                    <th>Data</th>
-	                                    <th>Valor</th>
-	                                    <th>Tipo Aumento</th>
+	                                    <th>Valor Plano</th>
+	                                    <th>Valor ANS</th>
 	                                    <th>Aumento Plano</th>
-	                                    <th>Aumento Devido</th>
 	                                    <th>Percentual Diferença</th>
+	                                    <th>Tipo Aumento</th>
 	                                </tr>
 	                            </thead>
 	                            <tbody>
-	                                ${simulacao.simulacoesPlano.map(plano => `
+	                                ${simulacao.itens.map(plano => `
 	                                    <tr>
 	                                        <td>${new Date(plano.data).toLocaleDateString("pt-BR")}</td>
 	                                        <td>${plano.valor.toFixed(2)}</td>
-	                                        <td>${plano.tipoAumento}</td>
-	                                        <td>${plano.aumentoPlano.toFixed(2)}</td>
-	                                        <td>${plano.aumentoDevido.toFixed(2)}</td>
+	                                        <td>${plano.valorANS.toFixed(2)}</td>
+	                                        <td>${plano.valorAumentoReal.toFixed(2)}</td>
 	                                        <td>${plano.percentualDiferenca.toFixed(2)}%</td>
+	                                        <td>${plano.tipoAumento}</td>
 	                                    </tr>
 	                                `).join('')}
 	                            </tbody>

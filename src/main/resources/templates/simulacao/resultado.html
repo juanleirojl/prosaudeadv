@@ -40,20 +40,20 @@
                             <div class="col-6">
                                 <div class="p-3 border rounded" style="background-color: #ffffff; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
                                     <h5 class="text-center">Você Pagou</h5>
-                                    <p class="display-4 text-center" style="color: #28a745;">R$ <span th:text="${simulacao.totalPago}"></span></p>
+                                    <p class="display-4 text-center" style="color: #28a745;">R$ <span th:text="${simulacao.valorTotalPago}"></span></p>
                                 </div>
                             </div>
                             <div class="col-6">
                                 <div class="p-3 border rounded" style="background-color: #ffffff; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
                                     <h5 class="text-center">O que Deveria Pagar</h5>
-                                    <p class="display-4 text-center" style="color: #dc3545;">R$ <span th:text="${simulacao.totalDevido}"></span></p>
+                                    <p class="display-4 text-center" style="color: #dc3545;">R$ <span th:text="${simulacao.valorTotalANS}"></span></p>
                                 </div>
                             </div>
                         </div>
                         <div class="alert alert-info text-center" role="alert">
                             <p class="font-weight-bold">Diferença</p>
                             <p class="display-5">
-                                R$ <span th:text="${simulacao.totalPago.subtract(simulacao.totalDevido)}"></span>
+                                R$ <span th:text="${simulacao.valorTotalPago.subtract(simulacao.valorTotalANS)}"></span>
                             </p>
                         </div>
                     </div>

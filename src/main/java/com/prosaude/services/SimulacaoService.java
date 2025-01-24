@@ -10,128 +10,139 @@ import org.springframework.stereotype.Service;
 import com.prosaude.controllers.requests.SimulacaoRequest;
 import com.prosaude.model.Cliente;
 import com.prosaude.model.IndiceANS;
+import com.prosaude.model.ItemSimulacao;
 import com.prosaude.model.Simulacao;
-import com.prosaude.model.SimulacaoPlano;
+import com.prosaude.model.TipoAumento;
 import com.prosaude.repositories.ClienteRepository;
 import com.prosaude.repositories.IndiceANSRepository;
-import com.prosaude.repositories.SimulacaoPlanoRepository;
 import com.prosaude.repositories.SimulacaoRepository;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class SimulacaoService {
 
-    private final ClienteRepository clienteRepository;
-    private final SimulacaoPlanoRepository simulacaoPlanoRepository;
     private final SimulacaoRepository simulacaoRepository;
     private final IndiceANSRepository indiceANSRepository;
+    private final ClienteRepository clienteRepository;
 
-    @Transactional
-    public Simulacao processarSimulacao(SimulacaoRequest request) {
-        Cliente cliente = recuperaOuCriaCliente(request);
-
-        BigDecimal valorAnterior = null;
-
-        // Variáveis para acumular os totais
-        BigDecimal totalPago = BigDecimal.ZERO;
-        BigDecimal totalDevido = BigDecimal.ZERO;
-        BigDecimal totalDiferenca = BigDecimal.ZERO;
-
-        // Lista para armazenar os planos da simulação
-        List<SimulacaoPlano> simulacoesPlano = new ArrayList<>();
-
-        for (SimulacaoRequest.ItemSimulacao item : request.getItens()) {
-            // Busca o índice de reajuste da ANS para o mês atual
-            Optional<IndiceANS> indiceANSOpt = indiceANSRepository.findIndicePorData(item.getData());
-            BigDecimal percentualIndice = indiceANSOpt.map(IndiceANS::getPercentual).orElse(BigDecimal.ZERO);
-
-            // Inicializar valores padrão
-            BigDecimal aumentoPlano = BigDecimal.ZERO;
-            BigDecimal aumentoDevido = BigDecimal.ZERO;
-            BigDecimal percentualAumentoPlano = BigDecimal.ZERO;
-            BigDecimal percentualDiferenca = BigDecimal.ZERO;
-            BigDecimal valorDevidoAtual = valorAnterior != null ? valorAnterior : item.getValor(); // Inicializa com o valor anterior ou o valor atual, caso seja o primeiro item.
-
-            // Calcula valores se houver valor anterior e o índice for válido
-            if (valorAnterior != null && percentualIndice.abs() != BigDecimal.ZERO) {
-                aumentoPlano = item.getValor().subtract(valorAnterior); // Aumento dado pelo plano
-                
-             // Cálculo correto do aumento devido pela ANS
-                aumentoDevido = valorDevidoAtual.multiply(percentualIndice)
-                        .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-                
-                valorDevidoAtual = valorDevidoAtual.add(aumentoDevido); // Atualiza o valor devido acumulado
-
-                // Percentual de aumento do plano
-                percentualAumentoPlano = aumentoPlano.divide(valorAnterior, 4, RoundingMode.HALF_UP)
-                        .multiply(BigDecimal.valueOf(100))
-                        .setScale(2, RoundingMode.HALF_UP);
-
-                // Percentual da diferença entre o aumento devido e o plano
-                percentualDiferenca = aumentoPlano.subtract(aumentoDevido)
-                        .divide(valorAnterior, 4, RoundingMode.HALF_UP)
-                        .multiply(BigDecimal.valueOf(100))
-                        .setScale(2, RoundingMode.HALF_UP);
-            }else {
-              valorDevidoAtual = item.getValor();
-            }
-
-            // Criação do simulacaoPlano
-            SimulacaoPlano simulacaoPlano = SimulacaoPlano.builder()
-                .valor(item.getValor())
-                .data(item.getData())
-                .tipoAumento(item.getTipoAumento())
-                .cliente(cliente)
-                .aumentoPlano(aumentoPlano) // Guarda o aumento dado pelo plano
-                .aumentoDevido(aumentoDevido) // Guarda o aumento devido pela ANS
-                .percentualAumentoPlano(percentualAumentoPlano) // Percentual de aumento dado pelo plano
-                .percentualDiferenca(percentualDiferenca) // Percentual de diferença entre aumento dado e devido
-                .indiceANS(indiceANSOpt.isPresent() ? indiceANSOpt.get() : null)
+    public Simulacao salvarSimulacao(SimulacaoRequest request) {
+      
+      Cliente cliente = recuperaOuCriaCliente(request);
+      
+        Simulacao simulacao = Simulacao.builder()
+            .cliente(cliente)
+            .dataSimulacao(LocalDate.now())
                 .build();
 
-            // Adiciona o simulacaoPlano à lista
-            simulacoesPlano.add(simulacaoPlano);
+        List<ItemSimulacao> itens = calcularValoresSimulacao(request.getItens(), simulacao, cliente);
 
-            // Atualiza os totais
-            totalPago = totalPago.add(item.getValor());
-            totalDevido = totalDevido.add(valorDevidoAtual);
-            totalDiferenca = totalDiferenca.add(aumentoPlano.subtract(aumentoDevido));
-
-            valorAnterior = item.getValor();
-        }
-
-        // Calcular o percentual de diferença entre o total pago e o total devido
-        BigDecimal percentualTotalDiferenca = BigDecimal.ZERO;
-        if (totalDevido.compareTo(BigDecimal.ZERO) > 0) {
-            percentualTotalDiferenca = totalDiferenca.divide(totalDevido, 4, RoundingMode.HALF_UP)
-                .multiply(BigDecimal.valueOf(100))
-                .setScale(2, RoundingMode.HALF_UP);
-        }
-
-        // Criação da Simulacao (entidade pai)
-        Simulacao simulacao = Simulacao.builder()
-            .dataSimulacao(LocalDate.now())  // Data da simulação
-            .cliente(cliente)
-            .simulacoesPlano(simulacoesPlano)  // Lista de planos da simulação
-            .totalPago(totalPago)  // Total pago
-            .totalDevido(totalDevido)  // Total devido pela ANS
-            .percentualDiferenca(percentualTotalDiferenca)  // Percentual de diferença
-            .build();
-
-        // Antes de salvar a simulacao, associamos o simulacaoPlano à simulação
-        for (SimulacaoPlano simulacaoPlano : simulacoesPlano) {
-            simulacaoPlano.setSimulacao(simulacao);
-        }
-
-        // Salva a simulação no banco
-        simulacaoPlanoRepository.saveAll(simulacoesPlano);  // Salva todos os planos associados
-        simulacaoRepository.save(simulacao);  // Salva a simulação principal
+        simulacao.setItens(itens);
+        simulacao.setValorTotalPago(itens.stream().map(ItemSimulacao::getValor).reduce(BigDecimal.ZERO, BigDecimal::add));
+        simulacao.setValorTotalANS(itens.stream().map(ItemSimulacao::getValorANS).reduce(BigDecimal.ZERO, BigDecimal::add));
+        simulacao.setPercentualDiferenca(calcularPercentualDiferenca(simulacao.getValorTotalPago(), simulacao.getValorTotalANS()));
         
-        return simulacao;
+        return simulacaoRepository.save(simulacao);
     }
 
+    private List<ItemSimulacao> calcularValoresSimulacao(List<SimulacaoRequest.ItemSimulacao> itensRequest, Simulacao simulacao, Cliente cliente) {
+      BigDecimal valorAtual = BigDecimal.ZERO;
+      BigDecimal valorANSAnterior = BigDecimal.ZERO;
+      List<ItemSimulacao> itensCalculados = new ArrayList<>();
+      boolean primeiroItem = true;
+
+      for (SimulacaoRequest.ItemSimulacao item : itensRequest) {
+          BigDecimal valorAnterior = valorAtual;
+          valorAtual = item.getValor();
+
+          // Cálculos do aumento real e percentual
+          BigDecimal valorAumentoReal = calcularAumentoReal(valorAnterior, valorAtual, primeiroItem);
+          BigDecimal percentualAumentoReal = calcularPercentualAumentoReal(valorAnterior, valorAumentoReal);
+          
+          // Obter o percentual do índice ANS para a data do aumento
+            IndiceANS obterPercentualANS = obterPercentualANS(item.getData());
+            BigDecimal percentualANS = obterPercentualANS.getPercentual();
+
+          // Cálculo do valor ANS: para o primeiro item, o valor ANS será igual ao valor pago
+          BigDecimal valorANS = primeiroItem ? valorAtual : calcularValorANS(valorANSAnterior, percentualANS);
+
+          // Atualiza o valor considerando o aumento de faixa etária
+//          if (item.getTipoAumento() == TipoAumento.FAIXA_ETARIA && !primeiroItem) {
+//              valorAtual = aplicarLimiteFaixaEtaria(valorAnterior, valorAtual);
+//              valorAumentoReal = valorAtual.subtract(valorAnterior);
+//              percentualAumentoReal = calcularPercentualAumentoReal(valorAnterior, valorAumentoReal);
+//          }
+
+          // Marca o primeiro item como processado
+          primeiroItem = false;
+
+          // Atualiza o valor ANS anterior para o próximo cálculo
+          valorANSAnterior = valorANS;
+          
+          // Adiciona o ItemSimulacao à lista
+          ItemSimulacao itemSimulacao = ItemSimulacao.builder()
+              .data(item.getData())
+              .valor(valorAtual)
+              .tipoAumento(item.getTipoAumento())
+              .valorAumentoReal(valorAumentoReal)
+              .percentualAumentoReal(percentualAumentoReal)
+              .percentualANS(percentualANS)
+              .indiceANS(obterPercentualANS)
+              .valorANS(valorANS)
+              .percentualDiferenca(calcularPercentualDiferenca(valorAtual, valorANS))
+              .simulacao(simulacao)
+              .cliente(cliente)
+              .build();
+
+
+          itensCalculados.add(itemSimulacao);
+      }
+
+      return itensCalculados;
+  }
+
+    private BigDecimal calcularPercentualDiferenca(BigDecimal valorPago, BigDecimal valorANS) {
+      if (valorANS.compareTo(BigDecimal.ZERO) > 0) {
+          return valorPago.subtract(valorANS).divide(valorANS, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100));
+      }
+      return BigDecimal.ZERO;
+  }
+
+    private BigDecimal calcularAumentoReal(BigDecimal valorAnterior, BigDecimal valorAtual, boolean primeiroItem) {
+      return primeiroItem ? BigDecimal.ZERO : valorAtual.subtract(valorAnterior).setScale(2, RoundingMode.HALF_UP);
+  }
+
+  private BigDecimal calcularPercentualAumentoReal(BigDecimal valorAnterior, BigDecimal valorAumentoReal) {
+      return valorAnterior.compareTo(BigDecimal.ZERO) > 0
+              ? valorAumentoReal.divide(valorAnterior, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP)
+              : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+  }
+
+  private BigDecimal calcularValorANS(BigDecimal valorAnteriorANS, BigDecimal percentualANS) {
+      return valorAnteriorANS.multiply(BigDecimal.ONE.add(percentualANS.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP)))
+              .setScale(2, RoundingMode.HALF_UP);
+  }
+
+  private BigDecimal aplicarLimiteFaixaEtaria(BigDecimal valorAnterior, BigDecimal valorAtual) {
+      BigDecimal valorMaximoFaixa = valorAnterior.multiply(BigDecimal.valueOf(1.30));
+      return valorAtual.min(valorMaximoFaixa).setScale(2, RoundingMode.HALF_UP);
+  }
+
+
+    public List<Simulacao> obterSimulacoes() {
+      return simulacaoRepository.findAll();
+    }
+    
+    public IndiceANS obterPercentualANS(LocalDate data) {
+        Optional<IndiceANS> indicePorData = indiceANSRepository.findIndicePorData(data);
+        if(indicePorData.isEmpty()) return IndiceANS.builder().percentual(BigDecimal.ZERO).build();
+        return indicePorData.get();
+    }
+
+    public Simulacao obterSimulacaoPorId(Long id) {
+      return simulacaoRepository.findById(id).orElseThrow(() -> new RuntimeException("Detalhe não encontrado: " + id));
+    }
+    
     private Cliente recuperaOuCriaCliente(SimulacaoRequest request) {
       // Primeiro tenta encontrar o cliente pelo email
       Cliente cliente = clienteRepository.findByEmail(request.getEmail())
@@ -159,15 +170,6 @@ public class SimulacaoService {
               }
           });
       return cliente;
-    }
-
-
-    public List<Simulacao> obterSimulacoes() {
-      return simulacaoRepository.findAll();
-    }
-
-    public Simulacao obterSimulacaoPorId(Long id) {
-      return simulacaoRepository.findById(id).orElseThrow(() -> new RuntimeException("Detalhe não encontrado: " + id));
     }
 
 

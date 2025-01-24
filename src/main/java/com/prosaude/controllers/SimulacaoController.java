@@ -37,15 +37,15 @@ public class SimulacaoController {
 
     @PostMapping
     public String salvarSimulacao(@ModelAttribute SimulacaoRequest simulacaoRequest, Model model) {
-        Simulacao simulacao = simulacaoService.processarSimulacao(simulacaoRequest);
+        Simulacao simulacao = simulacaoService.salvarSimulacao(simulacaoRequest);
         SimulacaoDTO simulacaoDTO = modelMapper.map(simulacao, SimulacaoDTO.class);
 
         // Adicionar os valores calculados ao modelo para exibição
         model.addAttribute("mensagem", String.format(
             "Você pagou R$ %.2f e o valor devido seria R$ %.2f. Uma diferença de R$ %.2f",
-            simulacao.getTotalPago(),
-            simulacao.getTotalDevido(),
-            simulacao.getTotalPago().subtract(simulacao.getTotalDevido())
+            simulacao.getValorTotalPago(),
+            simulacao.getValorTotalANS(),
+            simulacao.getValorTotalPago().subtract(simulacao.getValorTotalANS())
         ));
         model.addAttribute("simulacao", simulacaoDTO);
         return "simulacao/resultado";
