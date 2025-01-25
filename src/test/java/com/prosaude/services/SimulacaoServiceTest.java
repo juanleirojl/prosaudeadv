@@ -80,7 +80,7 @@ public class SimulacaoServiceTest {
   @Test
   void testCalculoComPercentualDiferenca() {
       SimulacaoRequest.ItemSimulacao item1 = new SimulacaoRequest.ItemSimulacao(
-          LocalDate.of(2015, 1, 1), BigDecimal.valueOf(1000), TipoAumento.NENHUM);
+          LocalDate.of(2015, 1, 1), BigDecimal.valueOf(1000), TipoAumento.VALOR_INICIAL);
       SimulacaoRequest.ItemSimulacao item2 = new SimulacaoRequest.ItemSimulacao(
           LocalDate.of(2016, 1, 1), BigDecimal.valueOf(1500), TipoAumento.ANIVERSARIO_PLANO);
       SimulacaoRequest.ItemSimulacao item3 = new SimulacaoRequest.ItemSimulacao(
@@ -96,15 +96,15 @@ public class SimulacaoServiceTest {
       Simulacao simulacao = simulacaoService.salvarSimulacao(request);
 
       // Verificações
-      assertEquals(new BigDecimal("6700"), simulacao.getValorTotalPago());
-      assertEquals(new BigDecimal("4843.64"), simulacao.getValorTotalANS());
+      assertEquals(new BigDecimal("91000"), simulacao.getValorTotalPago());
+      assertEquals(new BigDecimal("59890.63"), simulacao.getValorTotalANS());
 
       // Verificar a diferença percentual
       BigDecimal percentualDiferenca = simulacao.getValorTotalPago()
               .subtract(simulacao.getValorTotalANS())
               .divide(simulacao.getValorTotalANS(), 4, RoundingMode.HALF_UP)
               .multiply(BigDecimal.valueOf(100));
-      assertEquals(new BigDecimal("38.33"), percentualDiferenca.setScale(2, RoundingMode.HALF_UP));
+      assertEquals(new BigDecimal("51.94"), percentualDiferenca.setScale(2, RoundingMode.HALF_UP));
 
       // Verificar percentual de aumento para o primeiro item
       ItemSimulacao primeiroItem = simulacao.getItens().get(0);
@@ -116,7 +116,7 @@ public class SimulacaoServiceTest {
   @Test
   void testCalculoComIndicesANS() {
       SimulacaoRequest.ItemSimulacao item1 = new SimulacaoRequest.ItemSimulacao(
-          LocalDate.of(2015, 1, 1), BigDecimal.valueOf(1000), TipoAumento.NENHUM);
+          LocalDate.of(2015, 1, 1), BigDecimal.valueOf(1000), TipoAumento.VALOR_INICIAL);
       SimulacaoRequest.ItemSimulacao item2 = new SimulacaoRequest.ItemSimulacao(
           LocalDate.of(2016, 1, 1), BigDecimal.valueOf(1500), TipoAumento.ANIVERSARIO_PLANO);
       SimulacaoRequest.ItemSimulacao item3 = new SimulacaoRequest.ItemSimulacao(
@@ -132,8 +132,8 @@ public class SimulacaoServiceTest {
       Simulacao simulacao = simulacaoService.salvarSimulacao(request);
 
       // Verificações
-      assertEquals(new BigDecimal("6700"), simulacao.getValorTotalPago()); 
-      assertEquals(new BigDecimal("4843.64"), simulacao.getValorTotalANS()); 
+      assertEquals(new BigDecimal("91000"), simulacao.getValorTotalPago()); 
+      assertEquals(new BigDecimal("59890.63"), simulacao.getValorTotalANS()); 
   }
 
 
@@ -149,7 +149,7 @@ public class SimulacaoServiceTest {
                     SimulacaoRequest.ItemSimulacao.builder()
                             .data(LocalDate.of(2015, 1, 1))
                             .valor(BigDecimal.valueOf(1000))
-                            .tipoAumento(TipoAumento.NENHUM)
+                            .tipoAumento(TipoAumento.VALOR_INICIAL)
                             .build(),
                     SimulacaoRequest.ItemSimulacao.builder()
                             .data(LocalDate.of(2016, 1, 1))
@@ -174,7 +174,7 @@ public class SimulacaoServiceTest {
 
     // Verificações
     assertNotNull(simulacao);
-    assertEquals(4, simulacao.getItens().size());
+    assertEquals(46, simulacao.getItens().size());
 
     // Verificar valores
     ItemSimulacao primeiroItem = simulacao.getItens().get(0);

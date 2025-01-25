@@ -44,24 +44,24 @@
                 </div>
             </form>
 
-            <!-- Tabela com a classe table-responsive -->
+			<!-- Tabela com a classe table-responsive -->
             <div class="widget table-responsive">
                 <table class="table table-striped table-hover" id="simulacaoTable">
                     <thead>
                         <tr>
-                            <th onclick="sortTable(0)">Cliente</th>
-                            <th onclick="sortTable(1)">Data da Simulação</th>
-                            <th onclick="sortTable(2)">Total Pago</th>
-                            <th onclick="sortTable(3)">Total ANS</th>
-                            <th onclick="sortTable(4)">Percentual de Diferença</th>
-                            <th onclick="sortTable(5)">Diferença (R$)</th>
+                            <th onclick="sortTable(0, 'text')">Cliente <i class="fa fa-sort" id="sortCliente"></i></th>
+                            <th onclick="sortTable(1, 'date')">Data da Simulação <i class="fa fa-sort" id="sortDataSimulacao"></i></th>
+                            <th onclick="sortTable(2, 'currency')">Total Pago <i class="fa fa-sort" id="sortTotalPago"></i></th>
+                            <th onclick="sortTable(3, 'currency')">Total ANS <i class="fa fa-sort" id="sortTotalANS"></i></th>
+                            <th onclick="sortTable(4, 'percent')">Percentual de Diferença <i class="fa fa-sort" id="sortPercentualDif"></i></th>
+                            <th onclick="sortTable(5, 'currency')">Diferença (R$) <i class="fa fa-sort" id="sortDiferenca"></i></th>
 							<th>Ação</th>
                         </tr>
                     </thead>
 					<tbody id="simulacaoBody">
-						<tr th:each="simulacao : ${simulacoes}" th:attr="data-id=${simulacao.id}" onclick="fetchDetails(this)">
+						<tr th:each="simulacao : ${simulacoes}" th:attr="data-id=${simulacao.id}">
 						    <td th:text="${simulacao.cliente.nome}"></td>
-						    <td th:text="${#temporals.format(simulacao.dataSimulacao, 'dd/MM/yyyy')}"></td>
+						    <td th:text="${#temporals.format(simulacao.dataSimulacao, 'dd/MM/yyyy HH:mm')}"></td>
 						    <td th:text="${#numbers.formatCurrency(simulacao.valorTotalPago)}"></td>
 						    <td th:text="${#numbers.formatCurrency(simulacao.valorTotalANS)}"></td>
 						    <td th:text="${simulacao.percentualDiferenca + ' %'}"></td>
@@ -76,24 +76,24 @@
                 </table>
             </div>
 
-            <!-- Adicionando paginação com total de páginas e número atual -->
-            <div id="pagination" class="d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center">
-                    <label for="rowsPerPage" class="mr-2">Mostrar</label>
-                    <select id="rowsPerPage" class="form-control" style="width: auto;" onchange="updateRowsPerPage()">
-                        <option value="5">5</option>
-                        <option value="10">10</option>
-                        <option value="20">20</option>
-                        <option value="30">30</option>
-                    </select>
-                    <span class="ml-2">por página</span>
-                </div>
-                <div class="d-flex align-items-center">
-                    <button class="btn btn-primary" onclick="changePage(-1)" aria-label="Anterior">Anterior</button>
-                    <span class="mx-3">Página <span id="currentPageDisplay">1</span> de <span id="totalPagesDisplay">1</span></span>
-                    <button class="btn btn-primary" onclick="changePage(1)" aria-label="Próxima">Próxima</button>
-                </div>
-            </div>
+			<!-- Páginação com botões de 'anterior' e 'próxima' -->
+			<div id="pagination" class="d-flex flex-column flex-sm-row justify-content-between align-items-center">
+			    <div class="d-flex align-items-center mb-3 mb-sm-0">
+			        <label for="rowsPerPage" class="mr-2">Mostrar</label>
+			        <select id="rowsPerPage" class="form-control" style="width: auto;" onchange="updateRowsPerPage()">
+			            <option value="5">5</option>
+			            <option value="10">10</option>
+			            <option value="20">20</option>
+			            <option value="30">30</option>
+			        </select>
+			        <span class="ml-2">por página</span>
+			    </div>
+			    <div class="d-flex align-items-center">
+			        <button class="btn btn-primary btn-sm" onclick="changePage(-1)" aria-label="Anterior">←</button>
+			        <span class="mx-3">Página <span id="currentPageDisplay">1</span> de <span id="totalPagesDisplay">1</span></span>
+			        <button class="btn btn-primary btn-sm" onclick="changePage(1)" aria-label="Próxima">→</button>
+			    </div>
+			</div>
         </div>
     </section>
 </main>
@@ -102,168 +102,180 @@
 <script>
 	
 	function exportRowToExcel(button) {
-	        // Encontrar a linha da tabela onde o botão foi clicado
-	        const row = button.closest("tr");
+	    // Encontrar a linha da tabela onde o botão foi clicado
+	    const row = button.closest("tr");
 
-	        // Pegar os dados da linha da simulação
-	        const cells = row.getElementsByTagName("td");
+	    // Pegar os dados da linha da simulação
+	    const cells = row.getElementsByTagName("td");
 
-	        const data = {
-	            cliente: cells[0].textContent.trim(),
-	            dataSimulacao: cells[1].textContent.trim(),
-	            valorTotalPago: cells[2].textContent.trim().replace("R$", "").replace(".", "").replace(",", ".").trim(), // Remover "R$"
-	            valorTotalANS: cells[3].textContent.trim().replace("R$", "").replace(".", "").replace(",", ".").trim(), // Remover "R$"
-	            percentualDiferenca: cells[4].textContent.trim(),
-	            diferenca: cells[5].textContent.trim().replace("R$", "").replace(".", "").replace(",", ".").trim().trim(), // Remover "R$"
-	        };
+	    const data = {
+	        cliente: cells[0].textContent.trim(),
+	        dataSimulacao: cells[1].textContent.trim(),
+	        valorTotalPago: cells[2].textContent.trim().replace("R$", "").replace(".", "").replace(",", ".").trim(), // Remover "R$"
+	        valorTotalANS: cells[3].textContent.trim().replace("R$", "").replace(".", "").replace(",", ".").trim(), // Remover "R$"
+	        percentualDiferenca: cells[4].textContent.trim(),
+	        diferenca: cells[5].textContent.trim().replace("R$", "").replace(".", "").replace(",", ".").trim(), // Remover "R$"
+	    };
 
-	        // Supondo que você tenha uma função que consulta os detalhes da simulação por ID
-	        const simulacaoId = row.getAttribute("data-id");
-	        fetch(`/simulacao/detalhes/${simulacaoId}`)
-	            .then(response => response.json())
-	            .then(detalhes => {
-	                // Verificar se simulacoesPlano existe
-	                if (!detalhes || !detalhes.itens || detalhes.itens.length === 0) {
-	                    console.error("Detalhes não encontrados.");
-	                    return;
-	                }
+	    const simulacaoId = row.getAttribute("data-id");
 
-	                // Adiciona os detalhes filhos à exportação
-	                const detalhesData = detalhes.itens.map(plano => {
-	                    return [
-	                        plano.data ? plano.data : '',
-	                        plano.valor ? plano.valor.toFixed(3) : '0.000', // Formatar valor com 3 casas
-	                        plano.valorANS ? plano.valorANS.toFixed(3) : '0.000',
-	                        plano.valorAumentoReal ? plano.valorAumentoReal.toFixed(3) : '0.000',
-	                        plano.percentualAumentoReal ? plano.percentualAumentoReal.toFixed(3) : '0.000',
-	                        plano.percentualDiferenca ? plano.percentualDiferenca.toFixed(3) : '0.000',
-	                        plano.tipoAumento || 'NENHUM' // Tipo de aumento
-	                    ];
-	                });
+	    fetch(`/simulacao/detalhes/${simulacaoId}`)
+	        .then(response => response.json())
+	        .then(detalhes => {
+	            if (!detalhes || !detalhes.itens || detalhes.itens.length === 0) {
+	                console.error("Detalhes não encontrados.");
+	                return;
+	            }
 
-	                // Adiciona as informações principais e os detalhes filhos ao CSV
-	                const csvData = [
-	                    ["Cliente", "Data da Simulacao", "Total Pago", "Total ANS", "Percentual de Diferenca", "Diferenca (R$)"],
-	                    [
-	                        data.cliente,
-	                        data.dataSimulacao,
-	                        data.valorTotalPago, // Formatar para 3 casas decimais
-	                        parseFloat(data.valorTotalANS).toFixed(3), // Formatar para 3 casas decimais
-	                        data.percentualDiferenca,
-	                        parseFloat(data.diferenca).toFixed(3), // Formatar para 3 casas decimais
-	                    ],
-	                    [] // Linha em branco para separar os detalhes
-	                ];
+	            // Adiciona os detalhes filhos à exportação
+	            let detalhesData = detalhes.itens.map(plano => ({
+	                data: plano.data,
+	                valorPlano: plano.valor ? plano.valor.toFixed(3) : "0.000",
+	                valorANS: plano.valorANS ? plano.valorANS.toFixed(3) : "0.000",
+	                aumentoPlano: plano.valorAumentoReal ? plano.valorAumentoReal.toFixed(3) : "0.000",
+	                percentualAumentoPlano: plano.percentualAumentoReal ? plano.percentualAumentoReal.toFixed(3) : "0.000",
+	                percentualDiferenca: plano.percentualDiferenca ? plano.percentualDiferenca.toFixed(3) : "0.000",
+	                percentualANS: plano.percentualANS ? plano.percentualANS.toFixed(3) : "0.000",
+	                tipoAumento: plano.tipoAumento || "NENHUM",
+	            }));
 
-	                // Adiciona os detalhes dos planos no CSV
-	                csvData.push(["Data", "Valor Plano", "Valor ANS", "Aumento Plano", "Percentual Aumento Plano", "Percentual Diferenca", "Tipo Aumento"]); // Cabeçalhos dos detalhes
-	                detalhesData.forEach(detail => csvData.push(detail));
+	            // Ordena os detalhes pelo campo de data
+	            detalhesData = detalhesData.sort((a, b) => new Date(a.data) - new Date(b.data));
 
-	                // Criar o CSV com UTF-8
-	                let csvContent = "data:text/csv;charset=utf-8,";
-	                csvData.forEach(function (rowArray) {
-	                    const row = rowArray.join(",");
-	                    csvContent += row + "\r\n"; // Adiciona cada linha no CSV
-	                });
+	            // Adiciona as informações principais e os detalhes filhos ao CSV
+	            const csvData = [
+	                ["Cliente", "Data da Simulacao", "Total Pago", "Total ANS", "Percentual de Diferenca", "Diferenca (R$)"],
+	                [
+	                    data.cliente,
+	                    data.dataSimulacao,
+	                    parseFloat(data.valorTotalPago).toFixed(3),
+	                    parseFloat(data.valorTotalANS).toFixed(3),
+	                    data.percentualDiferenca,
+	                    parseFloat(data.diferenca).toFixed(3),
+	                ],
+	                [] // Linha em branco para separar os detalhes
+	            ];
 
-	                // Criar o nome do arquivo com o nome do cliente
-	                const fileName = `simulacao_${data.cliente.replace(/\s+/g, '_')}.csv`; // Substitui espaços por underscores no nome
-
-	                // Criar o link de download
-	                const encodedUri = encodeURI(csvContent);
-	                const link = document.createElement("a");
-	                link.setAttribute("href", encodedUri);
-	                link.setAttribute("download", fileName); // Nome do arquivo com o nome da simulação
-	                document.body.appendChild(link);
-
-	                // Disparar o clique para download
-	                link.click();
-	            })
-	            .catch(error => {
-	                console.error("Erro ao buscar detalhes da simulação:", error);
+	            // Adiciona os detalhes ordenados no CSV
+	            csvData.push(["Data", "Valor Plano", "Valor ANS", "Aumento Plano", "Percentual Aumento Plano", "Percentual Diferenca", "Indice ANS", "Tipo Aumento"]); // Cabeçalhos dos detalhes
+	            detalhesData.forEach(detail => {
+	                csvData.push([
+	                    new Date(detail.data).toLocaleDateString("pt-BR"),
+	                    detail.valorPlano,
+	                    detail.valorANS,
+	                    detail.aumentoPlano,
+	                    detail.percentualAumentoPlano,
+	                    detail.percentualDiferenca,
+	                    detail.percentualANS,
+	                    detail.tipoAumento,
+	                ]);
 	            });
-	    }
+
+	            // Criar o CSV com UTF-8
+	            let csvContent = "data:text/csv;charset=utf-8,";
+	            csvData.forEach(function (rowArray) {
+	                const row = rowArray.join(",");
+	                csvContent += row + "\r\n";
+	            });
+
+	            // Criar o nome do arquivo com o nome do cliente
+	            const fileName = `simulacao_${data.cliente.replace(/\s+/g, '_')}.csv`;
+
+	            // Criar o link de download
+	            const encodedUri = encodeURI(csvContent);
+	            const link = document.createElement("a");
+	            link.setAttribute("href", encodedUri);
+	            link.setAttribute("download", fileName);
+	            document.body.appendChild(link);
+
+	            // Disparar o clique para download
+	            link.click();
+	        })
+	        .catch(error => {
+	            console.error("Erro ao buscar detalhes da simulação:", error);
+	        });
+	}
 
 	
 	document.addEventListener("DOMContentLoaded", function () {
-	    function fetchDetails(row) {
-	        const simulacaoId = row.getAttribute("data-id");
-	        const existingDetails = row.nextElementSibling;
+		window.fetchDetails = function(row) {
+		    const simulacaoId = row.getAttribute("data-id");
+		    const existingDetails = row.nextElementSibling;
 
-	        // Verifica se os detalhes já estão visíveis
-	        if (existingDetails && existingDetails.classList.contains("details-row")) {
-	            existingDetails.remove();
-	            return;
-	        }
+		    // Verifica se os detalhes já estão visíveis
+		    if (existingDetails && existingDetails.classList.contains("details-row")) {
+		        existingDetails.remove();
+		        return;
+		    }
 
-	        // Faz a requisição para buscar os detalhes
-	        fetch(`/simulacao/detalhes/${simulacaoId}`)
-	            .then(response => {
-	                if (!response.ok) {
-	                    throw new Error(`Erro ao buscar detalhes: ${response.statusText}`);
-	                }
-	                return response.json();
-	            })
-	            .then(simulacao => {
-	                // Cria a linha de detalhes
-	                const detailsRow = document.createElement("tr");
-	                detailsRow.classList.add("details-row");
-	                detailsRow.innerHTML = `
-	                    <td colspan="6">
-	                        <table class="table table-sm table-bordered">
-	                            <thead>
-	                                <tr>
-	                                    <th>Data</th>
-	                                    <th>Valor Plano</th>
-	                                    <th>Valor ANS</th>
-	                                    <th>Aumento Plano</th>
-	                                    <th>Percentual Diferença</th>
-	                                    <th>Tipo Aumento</th>
-	                                </tr>
-	                            </thead>
-	                            <tbody>
-	                                ${simulacao.itens.map(plano => `
-	                                    <tr>
-	                                        <td>${new Date(plano.data).toLocaleDateString("pt-BR")}</td>
-	                                        <td>${plano.valor.toFixed(2)}</td>
-	                                        <td>${plano.valorANS.toFixed(2)}</td>
-	                                        <td>${plano.valorAumentoReal.toFixed(2)}</td>
-	                                        <td>${plano.percentualDiferenca.toFixed(2)}%</td>
-	                                        <td>${plano.tipoAumento}</td>
-	                                    </tr>
-	                                `).join('')}
-	                            </tbody>
-	                        </table>
-	                    </td>
-	                `;
-	                row.parentNode.insertBefore(detailsRow, row.nextElementSibling);
-	            })
-	            .catch(error => {
-	                console.error("Erro ao buscar detalhes:", error);
-	            });
-	    }
+		    // Faz a requisição para buscar os detalhes
+		    fetch(`/simulacao/detalhes/${simulacaoId}`)
+		        .then(response => {
+		            if (!response.ok) {
+		                throw new Error(`Erro ao buscar detalhes: ${response.statusText}`);
+		            }
+		            return response.json();
+		        })
+		        .then(simulacao => {
+		            // Filtra os planos que não têm tipoAumento "NENHUM" para exibição no grid
+		            const planosFiltrados = simulacao.itens.filter(plano => plano.tipoAumento !== "NENHUM");
 
-	    // Adiciona o evento de clique às linhas
-	    document.querySelectorAll("#simulacaoBody > tr").forEach(row => {
-	        row.addEventListener("click", function () {
-	            fetchDetails(row);
-	        });
-	    });
+		            // Cria a linha de detalhes
+		            const detailsRow = document.createElement("tr");
+		            detailsRow.classList.add("details-row");
+		            detailsRow.innerHTML = `
+		                <td colspan="6">
+		                    <table class="table table-sm table-bordered">
+		                        <thead>
+		                            <tr>
+		                                <th>Data</th>
+		                                <th>Valor Plano</th>
+		                                <th>Valor ANS</th>
+		                                <th>Aumento Plano</th>
+										<th>Percentual Aumento Plano</th>
+		                                <th>Percentual Diferença</th>
+		                                <th>Indice ANS</th>
+		                                <th>Tipo Aumento</th>
+		                            </tr>
+		                        </thead>
+		                        <tbody>
+		                            ${planosFiltrados.map(plano => `
+		                                <tr>
+		                                    <td>${new Date(plano.data).toLocaleDateString("pt-BR", { timeZone: "UTC" })}</td>
+		                                    <td>${plano.valor.toFixed(2)}</td>
+		                                    <td>${plano.valorANS.toFixed(2)}</td>
+		                                    <td>${plano.valorAumentoReal.toFixed(2)}</td>
+											<td>${plano.percentualAumentoReal.toFixed(2)}</td>
+		                                    <td>${plano.percentualDiferenca.toFixed(2)}%</td>
+		                                    <td>${plano.percentualANS.toFixed(2)}%</td>
+		                                    <td>${plano.tipoAumento}</td>
+		                                </tr>
+		                            `).join('')}
+		                        </tbody>
+		                    </table>
+		                </td>
+		            `;
+		            row.parentNode.insertBefore(detailsRow, row.nextElementSibling);
+		        })
+		        .catch(error => {
+		            console.error("Erro ao buscar detalhes:", error);
+		        });
+		};
+		
+		const rows = document.querySelectorAll("#simulacaoBody > tr");
+		    rows.forEach(row => {
+		        row.addEventListener("click", function () {
+		            fetchDetails(row);
+		        });
+		    });
+			// Inicializa a página ao carregar
+				    initializePagination();
+
 	});
 
 	
-    let currentPage = 1;
-    let rowsPerPage = 5;
     const table = document.getElementById("simulacaoTable");
     const rows = table.getElementsByTagName("tr");
-
-    // Função para atualizar o número de páginas e mostrar a página atual
-    function updatePagination() {
-        const totalPages = Math.ceil((rows.length - 1) / rowsPerPage);
-        document.getElementById("totalPagesDisplay").textContent = totalPages;
-        document.getElementById("currentPageDisplay").textContent = currentPage;
-        changePage(0);
-    }
 
     function filterTable() {
         const input = document.getElementById("cliente");
@@ -290,51 +302,165 @@
         }
     }
 
-    function sortTable(n) {
-        const rowsArray = Array.from(rows).slice(1); // Excluindo cabeçalho
-        const sortedRows = rowsArray.sort((a, b) => {
-            const cellA = a.getElementsByTagName("td")[n].textContent || a.getElementsByTagName("td")[n].innerText;
-            const cellB = b.getElementsByTagName("td")[n].textContent || b.getElementsByTagName("td")[n].innerText;
+	let currentPage = 1;
+		let rowsPerPage = 5;
+		
+		let currentSort = {
+		        column: -1,
+		        direction: 'asc'
+		    };
 
-            return cellA.localeCompare(cellB);
-        });
+			// Função para ordenar a tabela
+			    function sortTable(colIndex, type) {
+			        const table = document.getElementById("simulacaoTable");
+			        const rows = Array.from(table.getElementsByTagName("tr")).slice(1); // Excluindo cabeçalho
+			        let sortedRows;
 
-        // Reordena as linhas no DOM
-        for (const row of sortedRows) {
-            table.getElementsByTagName("tbody")[0].appendChild(row);
-        }
-    }
+			        if (currentSort.column === colIndex) {
+			            currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+			        } else {
+			            currentSort.column = colIndex;
+			            currentSort.direction = 'asc';
+			        }
 
-    function changePage(direction) {
-        currentPage += direction;
-        if (currentPage < 1) currentPage = 1;
-        const totalPages = Math.ceil((rows.length - 1) / rowsPerPage);
-        if (currentPage > totalPages) currentPage = totalPages;
+					// Função de comparação
+					const compare = (a, b) => {
+					    const cellA = a.getElementsByTagName("td")[colIndex].textContent || '';
+					    const cellB = b.getElementsByTagName("td")[colIndex].textContent || '';
 
-        const startIndex = (currentPage - 1) * rowsPerPage + 1; // Começa a partir da linha 1
-        const endIndex = currentPage * rowsPerPage;
+					    let valueA, valueB;
 
-        // Oculta todas as linhas
-        for (let i = 1; i < rows.length; i++) {
-            rows[i].style.display = "none";
-        }
+					    if (type === 'text') {
+					        valueA = cellA.toUpperCase();
+					        valueB = cellB.toUpperCase();
+					    } else if (type === 'date') {
+					        // Converter o formato de data para ISO: dd/MM/yyyy HH:mm -> yyyy-MM-ddTHH:mm:ss
+					        valueA = cellA.split(" ")[0].split("/").reverse().join("-") + "T" + cellA.split(" ")[1];
+					        valueB = cellB.split(" ")[0].split("/").reverse().join("-") + "T" + cellB.split(" ")[1];
 
-        // Exibe apenas as linhas da página atual
-        for (let i = startIndex; i <= endIndex && i < rows.length; i++) {
-            rows[i].style.display = "";
-        }
+					        // Convertendo para objetos Date
+					        valueA = new Date(valueA);
+					        valueB = new Date(valueB);
 
-        updatePagination(); // Atualiza o número da página e total
-    }
+					        // Caso a data seja inválida (por exemplo, "Invalid Date"), tratamos como valor padrão
+					        if (isNaN(valueA)) valueA = new Date(0);  // Representa 01/01/1970
+					        if (isNaN(valueB)) valueB = new Date(0);
+					    } else if (type === 'currency' || type === 'percent') {
+					        // Tratar valores monetários e percentuais
+					        valueA = parseFloat(cellA.replace("R$", "").replace(".", "").replace(",", ".").trim());
+					        valueB = parseFloat(cellB.replace("R$", "").replace(".", "").replace(",", ".").trim());
+					        
+					        // Caso os valores não sejam válidos (NaN), definimos 0 como valor padrão
+					        if (isNaN(valueA)) valueA = 0;
+					        if (isNaN(valueB)) valueB = 0;
+					    }
 
-    function updateRowsPerPage() {
-        rowsPerPage = parseInt(document.getElementById("rowsPerPage").value);
-        currentPage = 1; // Reset to first page when changing rows per page
-        updatePagination(); // Atualiza a paginação com o novo valor de rowsPerPage
-    }
+					    if (currentSort.direction === 'asc') {
+					        return valueA > valueB ? 1 : (valueA < valueB ? -1 : 0);
+					    } else {
+					        return valueA < valueB ? 1 : (valueA > valueB ? -1 : 0);
+					    }
+					};
 
-    // Inicializa a paginação
-    updatePagination();
+			        // Ordena as linhas
+			        sortedRows = rows.sort(compare);
+
+			        // Reordena as linhas no DOM
+			        sortedRows.forEach(row => table.querySelector('tbody').appendChild(row));
+
+			        // Atualiza ícones de ordenação
+			        updateSortIcons(colIndex);
+			    }
+
+			    // Atualiza os ícones de ordenação
+			    function updateSortIcons(colIndex) {
+			        const icons = document.querySelectorAll("th i");
+			        icons.forEach(icon => icon.classList.remove("fa-sort-asc", "fa-sort-desc"));
+
+			        const currentIcon = document.getElementById(`sort${['Cliente', 'DataSimulacao', 'TotalPago', 'TotalANS', 'PercentualDif', 'Diferenca'][colIndex]}`);
+			        if (currentSort.direction === 'asc') {
+			            currentIcon.classList.add("fa-sort-asc");
+			        } else {
+			            currentIcon.classList.add("fa-sort-desc");
+			        }
+			    }
+
+			    // Função para filtragem da tabela
+			    function filterTable() {
+			        const input = document.getElementById("cliente");
+			        const filter = input.value.toUpperCase();
+			        const table = document.getElementById("simulacaoTable");
+			        const rows = table.getElementsByTagName("tr");
+
+			        for (let i = 1; i < rows.length; i++) {
+			            const cells = rows[i].getElementsByTagName("td");
+			            let found = false;
+
+			            for (let j = 0; j < cells.length; j++) {
+			                const cellText = cells[j].textContent || cells[j].innerText;
+			                if (cellText.toUpperCase().indexOf(filter) > -1) {
+			                    found = true;
+			                    break;
+			                }
+			            }
+
+			            if (found) {
+			                rows[i].style.display = "";
+			            } else {
+			                rows[i].style.display = "none";
+			            }
+			        }
+			    }
+
+		function updateRowsPerPage() {
+		    rowsPerPage = parseInt(document.getElementById("rowsPerPage").value);
+		    currentPage = 1;
+		    initializePagination();
+		}
+
+		function changePage(direction) {
+		    currentPage += direction;
+		    const totalPages = Math.ceil((rows.length - 1) / rowsPerPage);
+		    
+		    if (currentPage < 1) currentPage = 1;
+		    if (currentPage > totalPages) currentPage = totalPages;
+
+		    const startIndex = (currentPage - 1) * rowsPerPage + 1;
+		    const endIndex = currentPage * rowsPerPage;
+
+		    for (let i = 1; i < rows.length; i++) {
+		        rows[i].style.display = "none";
+		    }
+
+		    for (let i = startIndex; i <= endIndex && i < rows.length; i++) {
+		        rows[i].style.display = "";
+		    }
+
+		    updatePagination();
+		}
+
+		function initializePagination() {
+		    const totalPages = Math.ceil((rows.length - 1) / rowsPerPage);
+		    const startIndex = (currentPage - 1) * rowsPerPage + 1;
+		    const endIndex = currentPage * rowsPerPage;
+
+		    for (let i = 1; i < rows.length; i++) {
+		        rows[i].style.display = "none";
+		    }
+
+		    for (let i = startIndex; i <= endIndex && i < rows.length; i++) {
+		        rows[i].style.display = "";
+		    }
+
+		    updatePagination();
+		}
+
+		function updatePagination() {
+		    const totalPages = Math.ceil((rows.length - 1) / rowsPerPage);
+		    document.getElementById("totalPagesDisplay").textContent = totalPages;
+		    document.getElementById("currentPageDisplay").textContent = currentPage;
+		}
+
 </script>
 </body>
 </html>

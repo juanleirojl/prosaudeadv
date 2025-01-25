@@ -2,7 +2,7 @@ package com.prosaude.services;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -10,8 +10,8 @@ import org.springframework.stereotype.Service;
 import com.prosaude.controllers.requests.SimulacaoRequest;
 import com.prosaude.model.Cliente;
 import com.prosaude.model.IndiceANS;
-import com.prosaude.model.Simulacao;
 import com.prosaude.model.ItemSimulacao;
+import com.prosaude.model.Simulacao;
 import com.prosaude.repositories.ClienteRepository;
 import com.prosaude.repositories.IndiceANSRepository;
 import com.prosaude.repositories.SimulacaoPlanoRepository;
@@ -111,7 +111,7 @@ public class SimulacaoServiceBack {
 
         // Criação da Simulacao (entidade pai)
         Simulacao simulacao = Simulacao.builder()
-            .dataSimulacao(LocalDate.now())  // Data da simulação
+            .dataSimulacao(LocalDateTime.now())  // Data da simulação
             .cliente(cliente)
             //.simulacoesPlano(simulacoesPlano)  // Lista de planos da simulação
             //.totalPago(totalPago)  // Total pago

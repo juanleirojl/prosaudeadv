@@ -20,4 +20,10 @@ public class ClienteDTO implements Serializable {
   private String email;
   private LocalDate dataNascimento;
   
+  public ClienteDTO(Long id, String nome, String email) {
+      this.id = id;
+      this.nome = nome;
+      this.email = email;
+  }
+  
 }

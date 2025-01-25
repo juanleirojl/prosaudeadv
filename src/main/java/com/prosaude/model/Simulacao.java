@@ -1,8 +1,9 @@
 package com.prosaude.model;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -32,10 +33,11 @@ public class Simulacao {
     private Long id;
 
     @Column(name = "data_simulacao", nullable = false)
-    private LocalDate dataSimulacao;
+    private LocalDateTime dataSimulacao;
 
     @ManyToOne
     @JoinColumn(name = "cliente_id", nullable = false)
+    @JsonManagedReference
     private Cliente cliente;
 
     @OneToMany(mappedBy = "simulacao", cascade = CascadeType.ALL, fetch = FetchType.EAGER)

@@ -11,6 +11,6 @@ import com.prosaude.model.IndiceANS;
 @Repository
 public interface IndiceANSRepository extends JpaRepository<IndiceANS, Long> {
   
-    @Query("SELECT i FROM IndiceANS i WHERE :data BETWEEN i.dataInicio AND i.dataFim")
+  @Query("SELECT i FROM IndiceANS i WHERE i.dataInicio <= :data AND i.dataFim > :data")
     Optional<IndiceANS> findIndicePorData(@Param("data") LocalDate data);
 }

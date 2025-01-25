@@ -54,10 +54,13 @@ public class SimulacaoController {
     
     @GetMapping("/admin/listar")
     public String listarSimulacoes(Model model) {
-        List<Simulacao> simulacoes = simulacaoService.obterSimulacoes();
-        List<SimulacaoDTO> simulacoesDTO = simulacoes.stream()
-            .map(simulacao -> modelMapper.map(simulacao, SimulacaoDTO.class))
-            .toList();
+      
+      List<Simulacao> simulacoes = simulacaoService.findAllSimulacoesComItens();
+
+      // Mapeia para SimulacaoDTO
+       var simulacoesDTO = simulacoes.stream()
+              .map(simulacao -> modelMapper.map(simulacao, SimulacaoDTO.class))
+              .toList();
         model.addAttribute("simulacoes", simulacoesDTO);
         return "simulacao/listar";
     }
