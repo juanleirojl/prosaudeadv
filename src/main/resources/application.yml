@@ -13,9 +13,9 @@ spring:
 
   # Configuração do DataSource com HikariCP (pool de conexões)
   datasource:
-    url: jdbc:postgresql://localhost:5432/mxmcimentos
-    username: postgres
-    password: 123
+    url: jdbc:postgresql://145.223.94.252:5432/prosaudeadv
+    username: prosaudeadv
+    password: prosaudeadv
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 5           # Limita o número de conexões simultâneas

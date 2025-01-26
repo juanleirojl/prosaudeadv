@@ -3,6 +3,7 @@ package com.prosaude.dto;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import org.springframework.format.annotation.DateTimeFormat;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.prosaude.model.TipoAumento;
 import lombok.AllArgsConstructor;
@@ -23,6 +24,7 @@ public class ItemSimulacaoDTO implements Serializable {
   private BigDecimal valor;
   
   @JsonFormat(pattern = "yyyy-MM-dd")
+  @DateTimeFormat
   private LocalDate data;
 
   private TipoAumento tipoAumento;
